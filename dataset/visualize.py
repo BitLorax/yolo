@@ -1,12 +1,16 @@
 
-import numpy as np
 from PIL import Image, ImageDraw
 
-filename = input('Filename: ')
-with Image.open(filename + '.png') as im, open(filename + '.txt') as data:
+filename = '0000'
+dataset = 'shape'
+with Image.open('dataset/' + dataset + '/images/' + filename + '.jpg') as im, open('dataset/' + dataset + '/labels/' + filename + '.txt') as data:
     draw = ImageDraw.Draw(im)
     for line in data:
         line = line.split(' ')
-        x, y, w, h = int(line[1]), int(line[2]), int(line[3]), int(line[4])
+        line = [float(x) for x in line]
+        w = line[3] * im.width
+        h = line[4] * im.height
+        x = line[1] * im.width - w / 2
+        y = line[2] * im.height - h / 2
         draw.rectangle([(x, y), (x + w, y + h)], outline=(255, 255, 255))
     im.show()

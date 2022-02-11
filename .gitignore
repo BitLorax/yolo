@@ -1,2 +1,5 @@
 .DS_STORE
-dataset/data/*
+dataset/voc/*
+dataset/shape/*
+__pycache__/
+saves/

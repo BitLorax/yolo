@@ -3,6 +3,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 import random
 import os
+import tqdm
 
 WIDTH = 448
 HEIGHT = 448
@@ -70,7 +71,7 @@ if not os.path.exists('dataset/shape/labels'):
     os.makedirs('dataset/shape/labels')
 
 with open('dataset/shape/train.csv', 'w') as csv:
-    for i in range(10000):
+    for i in tqdm(range(10000)):
         im, data = generate_image()
         im = im.convert('RGB')
         filename = str(i).zfill(4)

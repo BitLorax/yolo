@@ -6,7 +6,7 @@ momentum = 0.9
 epochs = 3
 
 num_workers = 2
-pin_memory = False
+pin_memory = True
 
 load_model = False
 visualize_preds = False

@@ -2,6 +2,7 @@
 import numpy as np
 from PIL import Image, ImageDraw
 import random
+import os
 
 WIDTH = 448
 HEIGHT = 448
@@ -62,6 +63,11 @@ def generate_image():
             filtered_data.append(line)
 
     return ret, filtered_data
+
+if not os.path.exists('dataset/shape/images'):
+    os.makedirs('dataset/shape/images')
+if not os.path.exists('dataset/shape/labels'):
+    os.makedirs('dataset/shape/labels')
 
 with open('dataset/shape/train.csv', 'w') as csv:
     for i in range(10000):

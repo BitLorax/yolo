@@ -1,0 +1,76 @@
+
+import numpy as np
+from PIL import Image, ImageDraw
+import random
+
+WIDTH = 448
+HEIGHT = 448
+
+SHAPES = [0, 3, 4, 5, 6]
+
+def generate_shape(used_colors, data):
+    im = Image.fromarray(np.zeros((WIDTH, HEIGHT, 4), dtype='uint8'), 'RGBA')
+    draw = ImageDraw.Draw(im)
+    color = (random.randint(0, 3) * 85, random.randint(0, 3) * 85, random.randint(0, 3) * 85)
+    while color == (0, 0, 0) or color in used_colors:
+        color = (random.randint(0, 3) * 85, random.randint(0, 3) * 85, random.randint(0, 3) * 85)
+    shape_idx = random.randint(0, len(SHAPES) - 1)
+    shape = SHAPES[shape_idx]
+
+    s = random.randint(int(min(WIDTH, HEIGHT) * 0.2), int(min(WIDTH, HEIGHT) * 0.6))
+    x = random.randint(0, WIDTH - s - 1)
+    y = random.randint(0, HEIGHT - s - 1)
+
+    if shape == 0:
+        draw.ellipse([(x, y), (x + s, y + s)], fill=color)
+    else:
+        rotation = random.randint(0, 360)
+        r = (int)(s / 2)
+        draw.regular_polygon((x + r, y + r, r), shape, rotation=rotation, fill=color)
+
+    s = s / WIDTH
+    x = x / WIDTH + s / 2
+    y = y / HEIGHT + s / 2
+
+    return im, shape_idx, x, y, s, color
+
+def generate_image():
+    num_shapes = random.randint(1, 3)
+    ret = Image.fromarray(np.zeros((WIDTH, HEIGHT, 4), dtype='uint8'), 'RGBA')
+    data = []
+    used_colors = []
+    for _ in range(num_shapes):
+        res, shape, x, y, s, color = generate_shape(used_colors, data)
+        ret.paste(res, (0, 0), res)
+        data.append([shape, x, y, s, s])
+        used_colors.append(color)
+
+    filtered_data = []
+    pix = ret.load()
+    for line in data:
+        x, y, w, h = line[1] * WIDTH, line[2] * HEIGHT, line[3] * WIDTH, line[4] * HEIGHT
+        x -= w / 2
+        y -= h / 2
+        x, y, w, h = int(x), int(y), int(w), int(h)
+        c = pix[x, y]
+        valid = False
+        for i in range(x, x + w):
+            for j in range(y, y + h):
+                if pix[i, j] != c:
+                    valid = True
+        if valid:
+            filtered_data.append(line)
+
+    return ret, filtered_data
+
+with open('dataset/shape/train.csv', 'w') as csv:
+    for i in range(10000):
+        im, data = generate_image()
+        im = im.convert('RGB')
+        filename = str(i).zfill(4)
+        im.save('dataset/shape/images/' + filename + '.jpg')
+        with open('dataset/shape/labels/' + filename + '.txt', 'w') as f:
+            for i in data:
+                f.write(' '.join(map(str, i)))
+                f.write('\n')
+        csv.write(filename + '.jpg,' + filename + '.txt\n')

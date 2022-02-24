@@ -1,6 +1,7 @@
 import torch
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
+import os
 
 from tqdm import tqdm
 
@@ -121,29 +122,35 @@ if __name__ == '__main__':
     
     print('Created model, optimizer, and loss function.')
 
+    if not os.path.exists('saves'):
+        os.makedirs('saves')
+
     for epoch in range(epochs):
         print(f'Epoch: {epoch}')
 
         train(dataloader, model, optim, loss_fn)
 
+        checkpoint = {
+            'state_dict': model.state_dict(),
+            'optimizer': optim.state_dict()
+        }
+        save_checkpoint(checkpoint, filename=load_model_file)
 
         if visualize_preds:
             visualize(dataloader)
         
-        if (epoch + 1) % 5 == 0:
-            pred_boxes, target_boxes = get_bboxes(
-                dataloader, model, iou_threshold=0.5, threshold=0.4
-            )
-            mean_avg_prec = mean_average_precision(
-                pred_boxes, target_boxes, iou_threshold=0.5
-            )
-            print(f'mAP: {mean_avg_prec}')
+        # if (epoch + 1) % 5 == 0:
+        #     pred_boxes, target_boxes = get_bboxes(
+        #         dataloader, model, iou_threshold=0.5, threshold=0.4
+        #     )
+        #     mean_avg_prec = mean_average_precision(
+        #         pred_boxes, target_boxes, iou_threshold=0.5
+        #     )
+        #     print(f'mAP: {mean_avg_prec}')
 
-            if mean_avg_prec > 0.9:
-                checkpoint = {
-                    'state_dict': model.state_dict(),
-                    'optimizer': optim.state_dict()
-                }
-                save_checkpoint(checkpoint, filename=load_model_file)
-                import time
-                time.sleep(10)
+        #     if mean_avg_prec > 0.9:
+                # checkpoint = {
+                #     'state_dict': model.state_dict(),
+                #     'optimizer': optim.state_dict()
+                # }
+                # save_checkpoint(checkpoint, filename=load_model_file)

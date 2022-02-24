@@ -1,6 +1,6 @@
 learning_rate = 1e-6
-device = 'cpu'
-batch_size = 64
+device = 'cuda'
+batch_size = 32
 weight_decay = 0
 momentum = 0.9
 epochs = 3

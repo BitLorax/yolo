@@ -3,3 +3,4 @@ dataset/voc/*
 dataset/shape/*
 __pycache__/
 saves/
+wandb/

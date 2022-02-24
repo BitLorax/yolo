@@ -1,21 +1,25 @@
-learning_rate = 2e-5
+learning_rate = 1e-6
 device = 'cpu'
-batch_size = 16
+batch_size = 64
 weight_decay = 0
-epochs = 100
+momentum = 0.9
+epochs = 3
 
 num_workers = 2
 pin_memory = False
 
-load_model = True
+load_model = False
 visualize_preds = False
-load_model_file = 'saves/model_100.pth.tar'
-dataset = 'shape'
-train_csv = 'train-100.csv'
+load_model_file = 'saves/model.pth.tar'
+selected_dataset = 'shape'
+data_csv = 'train-all.csv'
+optimizer = 'sgd'
 
 S = 7
 B = 2
-if dataset == 'voc':
+if selected_dataset == 'voc':
     C = 20
-elif dataset == 'shape':
+elif selected_dataset == 'shape':
     C = 5
+
+architecture_size = 'mini'

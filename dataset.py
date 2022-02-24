@@ -7,7 +7,7 @@ import pandas as pd
 
 from params import S, B, C
 
-class VOCDataset(Dataset):
+class Dataset(Dataset):
     def __init__(self, dataset, csv_file, transform=None):
         fileloc = 'dataset/' + dataset + '/'
         self.annotations = pd.read_csv(fileloc + csv_file)

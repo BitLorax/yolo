@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from collections import Counter
 from PIL import Image, ImageDraw
+from tqdm import tqdm
 
 from params import S, B, C
 
@@ -120,7 +121,8 @@ def get_bboxes(loader, model, iou_threshold, threshold):
     model.eval()
     train_idx = 0
 
-    for _, (x, labels) in enumerate(loader):
+    loop = tqdm(loader, desc='get bboxes', leave=False)
+    for _, (x, labels) in enumerate(loop):
         with torch.no_grad():
             predictions = model(x)
 

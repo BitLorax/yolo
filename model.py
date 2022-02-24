@@ -1,29 +1,52 @@
 import torch
 from torch import nn
 
-from params import S, B, C
+from params import S, B, C, architecture_size
 
-# Darknet architecture
-architecture = [
-    (7, 64, 2, 3),  # size, filters, stride, padding
-    "M",  # Maxpool
-    (3, 192, 1, 1),
-    "M",
-    (1, 128, 1, 0),
-    (3, 256, 1, 1),
-    (1, 256, 1, 0),
-    (3, 512, 1, 1),
-    "M",
-    [(1, 256, 1, 0), (3, 512, 1, 1), 4],  # [..., repeats]
-    (1, 512, 1, 0),
-    (3, 1024, 1, 1),
-    "M",
-    [(1, 512, 1, 0), (3, 1024, 1, 1), 2],
-    (3, 1024, 1, 1),
-    (3, 1024, 2, 1),
-    (3, 1024, 1, 1),
-    (3, 1024, 1, 1)
-]
+if architecture_size == 'full':  # Darknet
+    architecture = [
+        (7, 64, 2, 3),  # size, filters, stride, padding
+        "M",  # Maxpool
+        (3, 192, 1, 1),
+        "M",
+        (1, 128, 1, 0),
+        (3, 256, 1, 1),
+        (1, 256, 1, 0),
+        (3, 512, 1, 1),
+        "M",
+        [(1, 256, 1, 0), (3, 512, 1, 1), 4],  # [..., repeats]
+        (1, 512, 1, 0),
+        (3, 1024, 1, 1),
+        "M",
+        [(1, 512, 1, 0), (3, 1024, 1, 1), 2],
+        (3, 1024, 1, 1),
+        (3, 1024, 2, 1),
+        (3, 1024, 1, 1),
+        (3, 1024, 1, 1)
+    ]
+    dense_size = 4096
+elif architecture_size == 'mini':  # Mini-Darknet
+    architecture = [
+        (7, 64, 2, 3),
+        "M",
+        (3, 192, 1, 1),
+        "M",
+        (1, 128, 1, 0),
+        (3, 256, 1, 1),
+        (1, 256, 1, 0),
+        (3, 512, 1, 1),
+        "M",
+        [(1, 256, 1, 0), (3, 512, 1, 1), 2],
+        (1, 512, 1, 0),
+        (3, 1024, 1, 1),
+        "M",
+        [(1, 512, 1, 0), (3, 1024, 1, 1), 1],
+        (3, 1024, 1, 1),
+        (3, 1024, 2, 1),
+        (3, 1024, 1, 1),
+        (3, 1024, 1, 1)
+    ]
+    dense_size = 512
 
 class CNNBlock(nn.Module):
     def __init__(self, in_channels, out_channels, **kwargs):
@@ -91,8 +114,8 @@ class Yolo(nn.Module):
     def _create_fcs(self):
         return nn.Sequential(
             nn.Flatten(),
-            nn.Linear(1024 * S * S, 4096),
+            nn.Linear(1024 * S * S, dense_size),
             nn.Dropout(0.0),
             nn.LeakyReLU(0.1),
-            nn.Linear(4096, S * S * (C + B * 5))
+            nn.Linear(dense_size, S * S * (C + B * 5))
         )

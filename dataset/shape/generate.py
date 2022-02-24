@@ -3,7 +3,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 import random
 import os
-import tqdm
+from tqdm import tqdm
 
 WIDTH = 448
 HEIGHT = 448

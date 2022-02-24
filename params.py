@@ -12,7 +12,7 @@ load_model = False
 visualize_preds = False
 load_model_file = 'saves/model.pth.tar'
 selected_dataset = 'shape'
-data_csv = 'train-all.csv'
+data_csv = 'train.csv'
 optimizer = 'sgd'
 
 S = 7

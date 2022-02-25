@@ -1,6 +1,5 @@
 .DS_STORE
 dataset/voc/*
-dataset/shape/*
 !dataset/shape/generate.py
 __pycache__/
 saves/

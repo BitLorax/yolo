@@ -73,10 +73,12 @@ def visualize(dataloader):
 
 if __name__ == '__main__':
     print(f'Running on dataset: {selected_dataset}')
-    print(f'Save file: {load_model_file}')
+    print(f'Save file: {save_model_file}')
     print(f'Data from: {data_csv}')
     print(f'Epochs: {epochs}')
-    print(f'Resuming wandb run: {resume_run}')
+    if resume_run:
+        print('Resuming previous run. ')
+        print(f'Load file: {load_model_file}')
     print()
     input()
 
@@ -120,7 +122,7 @@ if __name__ == '__main__':
         optim = None
     loss_fn = YoloLoss()
 
-    if load_model:
+    if resume_run:
         load_checkpoint(torch.load(load_model_file), model, optim)
     
     print('Created model, optimizer, and loss function.')
@@ -137,7 +139,7 @@ if __name__ == '__main__':
             'state_dict': model.state_dict(),
             'optimizer': optim.state_dict()
         }
-        save_checkpoint(checkpoint, filename=load_model_file)
+        save_checkpoint(checkpoint, filename=save_model_file)
 
         if visualize_preds:
             visualize(dataloader)
@@ -156,4 +158,4 @@ if __name__ == '__main__':
                 #     'state_dict': model.state_dict(),
                 #     'optimizer': optim.state_dict()
                 # }
-                # save_checkpoint(checkpoint, filename=load_model_file)
+                # save_checkpoint(checkpoint, filename=save_model_file)

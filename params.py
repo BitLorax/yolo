@@ -8,8 +8,9 @@ epochs = 10
 num_workers = 2
 pin_memory = True
 
-load_model = False
+resume_run = False
 visualize_preds = False
+save_model_file = 'saves/model.pth.tar'
 load_model_file = 'saves/model.pth.tar'
 selected_dataset = 'shape'
 data_csv = 'train.csv'
@@ -23,5 +24,3 @@ elif selected_dataset == 'shape':
     C = 5
 
 architecture_size = 'mini'
-
-resume_run = False

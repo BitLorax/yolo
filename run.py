@@ -72,6 +72,14 @@ def visualize(dataloader):
 
 
 if __name__ == '__main__':
+    print(f'Running on dataset: {selected_dataset}')
+    print(f'Save file: {load_model_file}')
+    print(f'Data from: {data_csv}')
+    print(f'Epochs: {epochs}')
+    print(f'Resuming wandb run: {resume_run}')
+    print()
+    input()
+
     config = {
     'learning_rate': learning_rate,
     'epochs': epochs,
@@ -81,15 +89,10 @@ if __name__ == '__main__':
     }
     if optimizer == 'sgd':
         config['momentum'] = momentum
-    wandb.init(project='yolo', entity='willjhliang', config=config)
+    wandb.init(project='yolo', entity='willjhliang', config=config, resume=resume_run)
 
     seed = 123
     torch.manual_seed(seed)
-
-    print(f'Running on dataset: {selected_dataset}')
-    print(f'Save file: {load_model_file}')
-    print(f'Data from: {data_csv}')
-    print()
 
     dataset = Dataset(
         selected_dataset,

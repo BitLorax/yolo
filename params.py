@@ -3,7 +3,7 @@ device = 'cuda'
 batch_size = 32
 weight_decay = 0
 momentum = 0.9
-epochs = 3
+epochs = 10
 
 num_workers = 2
 pin_memory = True
@@ -23,3 +23,5 @@ elif selected_dataset == 'shape':
     C = 5
 
 architecture_size = 'mini'
+
+resume_run = False

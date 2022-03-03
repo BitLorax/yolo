@@ -23,4 +23,4 @@ if selected_dataset == 'voc':
 elif selected_dataset == 'shape':
     C = 5
 
-architecture_size = 'mini'
+architecture_size = 'semi-mini'

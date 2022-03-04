@@ -9,6 +9,7 @@ num_workers = 2
 pin_memory = True
 
 resume_run = False
+resume_run_id = '3andysr5'
 visualize_preds = False
 save_model_file = 'saves/model.pth.tar'
 load_model_file = 'saves/model.pth.tar'

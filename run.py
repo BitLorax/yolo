@@ -91,7 +91,10 @@ if __name__ == '__main__':
     }
     if optimizer == 'sgd':
         config['momentum'] = momentum
-    wandb.init(project='yolo', entity='willjhliang', config=config, resume=resume_run)
+    if resume_run:
+        wandb.init(project='yolo', entity='willjhliang', config=config, id=resume_run_id, resume='must')
+    else:
+        wandb.init(project='yolo', entity='willjhliang', config=config)
 
     seed = 123
     torch.manual_seed(seed)

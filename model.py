@@ -70,6 +70,14 @@ elif architecture_size == 'semi-mini':  # Darknet with mini FC layer
     ]
     dense_size = 512
 
+
+def init_weights(m):
+    if isinstance(m, nn.Conv2d):
+        nn.init.kaiming_uniform_(m.weight, a=0.1)
+    elif isinstance(m, nn.Linear):
+        nn.init.kaiming_uniform_(m.weight, a=0.1)
+
+
 class CNNBlock(nn.Module):
     def __init__(self, in_channels, out_channels, **kwargs):
         super(CNNBlock, self).__init__()
@@ -131,13 +139,17 @@ class Yolo(nn.Module):
 
                     in_channels = conv2[1]
 
-        return nn.Sequential(*layers)
+        net = nn.Sequential(*layers)
+        net.apply(init_weights)
+        return net
 
     def _create_fcs(self):
-        return nn.Sequential(
+        net = nn.Sequential(
             nn.Flatten(),
             nn.Linear(1024 * S * S, dense_size),
             nn.Dropout(0.0),
             nn.LeakyReLU(0.1),
             nn.Linear(dense_size, S * S * (C + B * 5))
         )
+        net.apply(init_weights)
+        return net

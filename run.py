@@ -55,8 +55,8 @@ def train(dataloader, model, optim, loss_fn):
         loss.backward()
         optim.step()
 
-        wandb.log({"loss": loss.item()})
-        wandb.watch(model)
+        # wandb.log({"loss": loss.item()})
+        # wandb.watch(model)
 
         loop.set_postfix()
     
@@ -91,10 +91,10 @@ if __name__ == '__main__':
     }
     if optimizer == 'sgd':
         config['momentum'] = momentum
-    if resume_run:
-        wandb.init(project='yolo', entity='willjhliang', config=config, id=resume_run_id, resume='must')
-    else:
-        wandb.init(project='yolo', entity='willjhliang', config=config)
+    # if resume_run:
+    #     wandb.init(project='yolo', entity='willjhliang', config=config, id=resume_run_id, resume='must')
+    # else:
+    #     wandb.init(project='yolo', entity='willjhliang', config=config)
 
     seed = 123
     torch.manual_seed(seed)

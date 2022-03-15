@@ -105,12 +105,15 @@ def plot_image(image, boxes):
     im = Image.fromarray(im)
     draw = ImageDraw.Draw(im)
     for box in boxes:
+        print(box)
+        conf = box[0]
         box = box[2:]
         x, y = box[0] - box[2] / 2, box[1] - box[3] / 2
         w, h = box[2], box[3]
         x, y = x * im.width, y * im.height
         w, h = w * im.width, h * im.height
         draw.rectangle([(x, y), (x + w, y + h)], outline=(255, 255, 255))
+        draw.text((x, y), str(conf), fill=(255, 255, 255))
     im.show()
 
 

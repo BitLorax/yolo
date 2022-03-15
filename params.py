@@ -1,5 +1,5 @@
 learning_rate = 1e-6
-device = 'cuda'
+device = 'cpu'
 batch_size = 32
 weight_decay = 0
 momentum = 0.9
@@ -12,9 +12,9 @@ resume_run = False
 resume_run_id = ''
 visualize_preds = False
 save_model_file = 'saves/model.pth.tar'
-load_model_file = 'saves/model.pth.tar'
+load_model_file = 'saves/shape/sgdm_semimini_all_10.pth.tar'
 selected_dataset = 'shape'
-data_csv = 'train.csv'
+data_csv = 'test.csv'
 optimizer = 'sgd'
 
 S = 7

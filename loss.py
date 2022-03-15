@@ -51,8 +51,8 @@ class YoloLoss(nn.Module):
         #     torch.flatten(exists_box * pred_box),
         #     torch.flatten(exists_box * target[..., C:C+1])
         # )
-        doubled_exists_box = torch.cat([exists_box, exists_box], dim=0)
-        pred_conf = torch.cat([predictions[..., C:C+1], predictions[..., C+5:C+6]], dim=0)
+        doubled_exists_box = torch.cat([exists_box.unsqueeze(0), exists_box.unsqueeze(0)], dim=0)
+        pred_conf = torch.cat([predictions[..., C:C+1].unsqueeze(0), predictions[..., C+5:C+6].unsqueeze(0)], dim=0)
         obj_conf_loss = self.mse(
             torch.flatten(doubled_exists_box * pred_conf),
             torch.flatten(doubled_exists_box * IOUs)

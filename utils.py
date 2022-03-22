@@ -6,21 +6,21 @@ from tqdm import tqdm
 
 from params import S, B, C
 
-def intersection_over_union(boxes_preds, boxes_labels):
-    Aw, Ah = boxes_preds[..., 2:3], boxes_preds[..., 3:4]
-    Bw, Bh = boxes_labels[..., 2:3], boxes_labels[..., 3:4]
+def intersection_over_union(boxA, boxB):
+    Aw, Ah = boxA[..., 2:3], boxA[..., 3:4]
+    Bw, Bh = boxB[..., 2:3], boxB[..., 3:4]
 
-    Ax1, Ay1 = boxes_preds[..., 0:1] - Aw / 2, boxes_preds[..., 1:2] - Ah / 2
-    Bx1, By1 = boxes_labels[..., 0:1] - Bw / 2, boxes_labels[..., 1:2] - Bh / 2
-    Ax2, Ay2 = boxes_preds[..., 0:1] + Aw / 2, boxes_preds[..., 1:2] + Ah / 2
-    Bx2, By2 = boxes_labels[..., 0:1] + Bw / 2, boxes_labels[..., 1:2] + Bh / 2
+    Ax1, Ay1 = boxA[..., 0:1] - Aw / 2, boxA[..., 1:2] - Ah / 2
+    Bx1, By1 = boxB[..., 0:1] - Bw / 2, boxB[..., 1:2] - Bh / 2
+    Ax2, Ay2 = boxA[..., 0:1] + Aw / 2, boxA[..., 1:2] + Ah / 2
+    Bx2, By2 = boxB[..., 0:1] + Bw / 2, boxB[..., 1:2] + Bh / 2
 
     x1 = torch.max(Ax1, Bx1)
     y1 = torch.max(Ay1, By1)
     x2 = torch.min(Ax2, Bx2)
     y2 = torch.min(Ay2, By2)
 
-    intersection = (x2 - x1).clamp(0) * (y2 - y1).clamp(0)
+    intersection = (x2 - x1).clamp(min=0) * (y2 - y1).clamp(min=0)
     union = abs((Ax2 - Ax1) * (Ay2 - Ay1)) + abs((Bx2 - Bx1) * (By2 - By1)) - intersection
 
     return intersection / (union + 1e-6)
@@ -101,19 +101,21 @@ def mean_average_precision(pred_boxes, true_boxes, iou_threshold=0.5):
 
 
 def plot_image(image, boxes):
+    shape_names = ['circle', 'triangle', 'square', 'pentagon', 'hexagon', 'heptagon', 'octagon']
     im = (np.array(image) * 255).astype(np.uint8)
     im = Image.fromarray(im)
     draw = ImageDraw.Draw(im)
     for box in boxes:
-        print(box)
         conf = box[0]
+        shape = int(box[1])
         box = box[2:]
         x, y = box[0] - box[2] / 2, box[1] - box[3] / 2
         w, h = box[2], box[3]
         x, y = x * im.width, y * im.height
         w, h = w * im.width, h * im.height
         draw.rectangle([(x, y), (x + w, y + h)], outline=(255, 255, 255))
-        draw.text((x, y), str(conf), fill=(255, 255, 255))
+        draw.text((x + 5, y), str(shape) + " " + str(shape_names[shape]), fill=(255, 255, 255))
+        draw.text((x + w - 20, y), str(conf), fill=(255, 255, 255))
     im.show()
 
 
@@ -130,15 +132,13 @@ def get_bboxes(loader, model, iou_threshold, threshold):
             predictions = model(x)
 
         batch_size = x.shape[0]
-        true_bboxes = cellboxes_to_boxes(labels)
-        bboxes = cellboxes_to_boxes(predictions)
+        # true_bboxes = cellboxes_to_boxes(labels)
+        # bboxes = cellboxes_to_boxes(predictions)
+        true_bboxes = predictions_to_bboxes(labels)
+        bboxes = predictions_to_bboxes(predictions)
 
         for idx in range(batch_size):
-            nms_boxes = non_max_suppression(
-                bboxes[idx],
-                iou_threshold=iou_threshold,
-                threshold=threshold,
-            )
+            nms_boxes = non_max_suppression(bboxes[idx], iou_threshold, threshold)
 
             for nms_box in nms_boxes:
                 all_pred_boxes.append([train_idx] + nms_box)
@@ -153,41 +153,60 @@ def get_bboxes(loader, model, iou_threshold, threshold):
     return all_pred_boxes, all_true_boxes
 
 
-def convert_cellboxes(predictions):
+def predictions_to_bboxes(predictions):
     predictions = predictions.to('cpu')
+
     batch_size = predictions.shape[0]
     predictions = predictions.reshape(batch_size, S, S, C + B * 5)
 
-    bboxes1 = predictions[..., C+1:C+5]
-    bboxes2 = predictions[..., C+6:C+10]
-    scores = torch.cat((predictions[..., C].unsqueeze(0), predictions[..., C+5].unsqueeze(0)), dim=0)
-    best_box = scores.argmax(0).unsqueeze(-1)
-    best_boxes = bboxes1 * (1 - best_box) + best_box * bboxes2
+    # bboxes1 = predictions[..., C+1:C+5]
+    # bboxes2 = predictions[..., C+6:C+10]
+    # scores = torch.cat((predictions[..., C].unsqueeze(0), predictions[..., C+5].unsqueeze(0)), dim=0)
+    # best_box = scores.argmax(0).unsqueeze(-1)
+    # best_boxes = bboxes1 * (1 - best_box) + best_box * bboxes2
 
-    cell_indices = torch.arange(S).repeat(batch_size, S, 1).unsqueeze(-1)
-    x = 1 / S * (best_boxes[..., :1] + cell_indices)
-    y = 1 / S * (best_boxes[..., 1:2] + cell_indices.permute(0, 2, 1, 3))  # needs S = 7
-    wh = 1 / S * best_boxes[..., 2:4]
-    converted_bboxes = torch.cat((x, y, wh), dim=-1)
-    predicted_class = predictions[..., :C].argmax(-1).unsqueeze(-1)
-    best_confidence = torch.max(predictions[..., C], predictions[..., C+5]).unsqueeze(-1)
+    ret = torch.empty((0))
+    for cx in range(S):
+        for cy in range(S):
+            cell = predictions[:, cx, cy, :]
+            for i in range(B):
+                idx_offset = C + 5 * i
+                pred_class = torch.argmax(cell[:, :C], dim=1).unsqueeze(-1)
+                conf = cell[:, idx_offset].unsqueeze(-1)
+                x = 1 / S * (cell[:, idx_offset + 1].unsqueeze(-1) + cx)
+                y = 1 / S * (cell[:, idx_offset + 2].unsqueeze(-1) + cy)
+                w = cell[:, idx_offset + 3].unsqueeze(-1)
+                h = cell[:, idx_offset + 4].unsqueeze(-1)
 
-    converted_preds = torch.cat((predicted_class, best_confidence, converted_bboxes), dim=-1)
-    return converted_preds
+                box = torch.cat((pred_class, conf, x, y, w, h), dim=-1)
+                ret = torch.cat((ret, box), dim=0)
+
+    return ret
+
+    # cell_indices = torch.arange(S).repeat(batch_size, S, 1).unsqueeze(-1)
+    # x = 1 / S * (best_boxes[..., :1] + cell_indices)
+    # y = 1 / S * (best_boxes[..., 1:2] + cell_indices.permute(0, 2, 1, 3))  # needs S = 7
+    # wh = 1 / S * best_boxes[..., 2:4]
+    # converted_bboxes = torch.cat((x, y, wh), dim=-1)
+    # predicted_class = predictions[..., :C].argmax(-1).unsqueeze(-1)
+    # best_confidence = torch.max(predictions[..., C], predictions[..., C+5]).unsqueeze(-1)
+
+    # converted_preds = torch.cat((predicted_class, best_confidence, converted_bboxes), dim=-1)
+    # return converted_preds
 
 
-def cellboxes_to_boxes(out):
-    converted_pred = convert_cellboxes(out).reshape(out.shape[0], S * S, -1)
-    converted_pred[..., 0] = converted_pred[..., 0].long()
-    all_bboxes = []
+# def cellboxes_to_boxes(out):
+#     converted_pred = predictions_to_cellboxes(out).reshape(out.shape[0], S * S, -1)
+#     converted_pred[..., 0] = converted_pred[..., 0].long()
+#     all_bboxes = []
 
-    for i in range(out.shape[0]):
-        bboxes = []
-        for bbox_idx in range(S * S):
-            bboxes.append([x.item() for x in converted_pred[i, bbox_idx, :]])
-        all_bboxes.append(bboxes)
+#     for i in range(out.shape[0]):
+#         bboxes = []
+#         for bbox_idx in range(S * S):
+#             bboxes.append([x.item() for x in converted_pred[i, bbox_idx, :]])
+#         all_bboxes.append(bboxes)
 
-    return all_bboxes
+#     return all_bboxes
 
 
 def save_checkpoint(state, filename="saves/noname.pth.tar"):

@@ -10,16 +10,14 @@ HEIGHT = 448
 
 SHAPES = [0, 3, 4, 5, 6]
 
-def generate_shape(used_colors, data):
+def generate_shape():
     im = Image.fromarray(np.zeros((WIDTH, HEIGHT, 4), dtype='uint8'), 'RGBA')
     draw = ImageDraw.Draw(im)
-    color = (random.randint(0, 3) * 85, random.randint(0, 3) * 85, random.randint(0, 3) * 85)
-    while color == (0, 0, 0) or color in used_colors:
-        color = (random.randint(0, 3) * 85, random.randint(0, 3) * 85, random.randint(0, 3) * 85)
+    color = (random.randint(0, 5) * 40 + 50, random.randint(0, 5) * 40 + 50, random.randint(0, 5) * 40 + 50)
     shape_idx = random.randint(0, len(SHAPES) - 1)
     shape = SHAPES[shape_idx]
 
-    s = random.randint(int(min(WIDTH, HEIGHT) * 0.2), int(min(WIDTH, HEIGHT) * 0.6))
+    s = random.randint(int(min(WIDTH, HEIGHT) * 0.05), int(min(WIDTH, HEIGHT) * 0.3))
     x = random.randint(0, WIDTH - s - 1)
     y = random.randint(0, HEIGHT - s - 1)
 
@@ -34,18 +32,16 @@ def generate_shape(used_colors, data):
     x = x / WIDTH + s / 2
     y = y / HEIGHT + s / 2
 
-    return im, shape_idx, x, y, s, color
+    return im, shape_idx, x, y, s
 
 def generate_image():
     num_shapes = random.randint(1, 3)
     ret = Image.fromarray(np.zeros((WIDTH, HEIGHT, 4), dtype='uint8'), 'RGBA')
     data = []
-    used_colors = []
     for _ in range(num_shapes):
-        res, shape, x, y, s, color = generate_shape(used_colors, data)
+        res, shape, x, y, s = generate_shape()
         ret.paste(res, (0, 0), res)
         data.append([shape, x, y, s, s])
-        used_colors.append(color)
 
     filtered_data = []
     pix = ret.load()

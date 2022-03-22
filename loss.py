@@ -30,9 +30,6 @@ class YoloLoss(nn.Module):
         )
         box_targets = exists_box * target[..., C+1:C+5]
 
-        # box_predictions[..., 2:4] = torch.sign(box_predictions[..., 2:4]) * torch.sqrt(
-        #     torch.abs(box_predictions[..., 2:4] + 1e-6)
-        # )
         box_predictions[..., 2:4] = torch.sqrt(torch.abs(box_predictions[..., 2:4] + 1e-6))
         box_targets[..., 2:4] = torch.sqrt(box_targets[..., 2:4])
 
@@ -42,15 +39,6 @@ class YoloLoss(nn.Module):
         )
 
         # Confidence loss
-        # pred_box = (
-        #     best_box * predictions[..., C+5:C+6] +
-        #     (1 - best_box) * predictions[..., C:C+1]
-        # )
-
-        # object_loss = self.mse(
-        #     torch.flatten(exists_box * pred_box),
-        #     torch.flatten(exists_box * target[..., C:C+1])
-        # )
         doubled_exists_box = torch.cat([exists_box.unsqueeze(0), exists_box.unsqueeze(0)], dim=0)
         pred_conf = torch.cat([predictions[..., C:C+1].unsqueeze(0), predictions[..., C+5:C+6].unsqueeze(0)], dim=0)
         obj_conf_loss = self.mse(
@@ -61,15 +49,6 @@ class YoloLoss(nn.Module):
             torch.flatten((1 - doubled_exists_box) * pred_conf),
             torch.flatten((1 - doubled_exists_box) * IOUs)
         )
-
-        # no_object_loss = self.mse(
-        #     torch.flatten((1 - exists_box) * predictions[..., C:C+1]),
-        #     torch.flatten((1 - exists_box) * target[..., C:C+1])
-        # )
-        # no_object_loss += self.mse(
-        #     torch.flatten((1 - exists_box) * predictions[..., C+5:C+6]),
-        #     torch.flatten((1 - exists_box) * target[..., C:C+1])
-        # )
 
         # Class loss
         class_loss = self.mse(

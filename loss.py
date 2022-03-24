@@ -5,6 +5,12 @@ from utils import intersection_over_union
 from params import S, B, C
 
 class YoloLoss(nn.Module):
+    """
+    YOLO loss function comparing predicted bounding boxes with actual.
+
+
+    TODO: REDO CHECKING WITH GROUND TRUTH, RIGHT NOW EACH CELL ONLY HAS ONE GROUND TRUTH BOX
+    """
     def __init__(self):
         super(YoloLoss, self).__init__()
         self.mse = nn.MSELoss(reduction='sum')

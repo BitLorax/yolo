@@ -89,6 +89,12 @@ class CNNBlock(nn.Module):
         return self.leakyrelu(self.batchnorm(self.conv(x)))
 
 class Yolo(nn.Module):
+    """
+    YOLO CNN model. Starts with Darknet architecture and finishes with FC layer.
+
+    Input is an image with values between 0 and 1. Output is vector of size S * S * (C + B * 5) containing bounding box information for each grid cell.
+    
+    """
     def __init__(self, in_channels=3, **kwargs):
         super(Yolo, self).__init__()
         self.architecture = architecture

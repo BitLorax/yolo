@@ -20,22 +20,21 @@ class Dataset(Dataset):
         return len(self.annotations)
     
     def __getitem__(self, idx):
+        im_path = os.path.join(self.im_dir, self.annotations.iloc[idx, 0])
+        im = Image.open(im_path)
         label_path = os.path.join(self.label_dir, self.annotations.iloc[idx, 1])
         boxes = []
         with open(label_path) as f:
             for label in f.readlines():
                 label = label.strip().split()
-                class_label = int(label[0])
-                x, y, w, h = [float(x) for x in label[1:]]
-                boxes.append([class_label, x, y, w, h])
-            im_path = os.path.join(self.im_dir, self.annotations.iloc[idx, 0])
-            im = Image.open(im_path)
-
+                c = int(label[0])
+                x, y, w, h = [float(i) for i in label[1:]]
+                boxes.append([c, x, y, w, h])
             boxes = torch.tensor(boxes)
             if self.transform:
                 im, boxes = self.transform(im, boxes)
             
-            label_matrix = torch.zeros((S, S, C + 5 * B))  # C + 5 * B to work with util functions
+            label_matrix = torch.zeros((S, S, C + 5 * B))
             for box in boxes:
                 class_label, x, y, w, h = box.tolist()
                 class_label = int(class_label)

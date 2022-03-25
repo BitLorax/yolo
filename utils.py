@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from PIL import Image, ImageDraw
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 from params import S, B, C
 
@@ -49,23 +50,23 @@ def non_max_suppression(bboxes, iou_threshold, conf_threshold):
         A list of remaining bounding boxes.
     """
 
-    bboxes = [box for box in bboxes if box[1] > conf_threshold]
-    bboxes = sorted(bboxes, key=lambda x: x[1], reverse=True)
+    bboxes = [box for box in bboxes if box[0] > conf_threshold]
+    bboxes = sorted(bboxes, key=lambda x: x[0], reverse=True)
     ret = []
 
     while len(bboxes) > 0:
         chosen_box = bboxes.pop(0)
         bboxes = [
             box for box in bboxes if
-                box[0] != chosen_box[0] or
-                intersection_over_union(torch.tensor(chosen_box[2:]), torch.tensor(box[2:])) < iou_threshold
+                box[1] != chosen_box[1] or
+                intersection_over_union(chosen_box[2:].clone().detach(), box[2:].clone().detatch()) < iou_threshold
         ]
         ret.append(chosen_box)
 
     return ret
 
 
-def mean_average_precision(pred_boxes, true_boxes, iou_threshold=0.5):
+def mean_average_precision(pred_boxes, true_boxes, iou_threshold=0.5, plot_curve=False):
     """
     Calculates the mean average precision between predicted and true bounding boxes.
 
@@ -80,40 +81,40 @@ def mean_average_precision(pred_boxes, true_boxes, iou_threshold=0.5):
 
     average_precisions = []
     for c in range(C):
-        predicted_cboxes = []
-        true_cboxes = []
+        pred_class_boxes = []
+        true_class_boxes = []
 
         for box in pred_boxes:
-            if box[1] == c:
-                predicted_cboxes.append(box)
+            if box[2] == c:
+                pred_class_boxes.append(box)
 
         for box in true_boxes:
-            if box[1] == c:
-                true_cboxes.append(box)
+            if box[2] == c:
+                true_class_boxes.append(box)
 
         img_boxes = {}
-        for box in true_boxes:
+        for box in true_class_boxes:
             if box[0] in img_boxes:
                 img_boxes[box[0]] += 1
             else:
                 img_boxes[box[0]] = 1
-        for box, count in img_boxes:
-            img_boxes[box] = torch.zeros(count)
+        for img in img_boxes:
+            img_boxes[img] = torch.zeros(img_boxes[img])
 
-        predicted_cboxes.sort(key=lambda x: x[2], reverse=True)
-        TP = torch.zeros((len(predicted_cboxes)))
-        FP = torch.zeros((len(predicted_cboxes)))
+        pred_class_boxes.sort(key=lambda x: x[2], reverse=True)
+        TP = torch.zeros((len(pred_class_boxes)))
+        FP = torch.zeros((len(pred_class_boxes)))
 
-        if len(true_cboxes) == 0:
+        if len(true_class_boxes) == 0:
             continue
 
-        for i, predicted_cbox in enumerate(predicted_cboxes):
-            img_idx = predicted_cbox[0]
-            img_true_cboxes = [box for box in true_cboxes if box[0] == img_idx]
+        for i, pred_box in enumerate(pred_class_boxes):
+            img_idx = pred_box[0]
+            true_img_boxes = [box for box in true_class_boxes if box[0] == img_idx]
             best_iou = 0
             best_idx = 0
-            for j, true_cbox in enumerate(img_true_cboxes):
-                iou = intersection_over_union(torch.tensor(predicted_cbox[3:]), torch.tensor(true_cbox[3:]))
+            for j, true_box in enumerate(true_img_boxes):
+                iou = intersection_over_union(torch.tensor(pred_box[3:]), torch.tensor(true_box[3:]))
                 if iou > best_iou:
                     best_iou = iou
                     best_idx = j
@@ -129,11 +130,15 @@ def mean_average_precision(pred_boxes, true_boxes, iou_threshold=0.5):
 
         TP_cumsum = torch.cumsum(TP, dim=0)
         FP_cumsum = torch.cumsum(FP, dim=0)
-        recalls = TP_cumsum / (len(true_cboxes) + 1e-6)
+        recalls = TP_cumsum / (len(true_class_boxes) + 1e-6)
         precisions = torch.divide(TP_cumsum, (TP_cumsum + FP_cumsum + 1e-6))
 
         precisions = torch.cat((torch.tensor([1]), precisions))
         recalls = torch.cat((torch.tensor([0]), recalls))
+
+        if plot_curve:
+            plt.plot(precisions.deatch().cpu().numpy(), recalls.detatch().cpu().numpy())
+            plt.show()
 
         average_precisions.append(torch.trapz(precisions, recalls))
 
@@ -192,26 +197,24 @@ def get_bboxes(loader, model, iou_threshold, conf_threshold):
     img_idx = 0
 
     loop = tqdm(loader, leave=False)
-    for _, (img, labels) in enumerate(loop):
+    for _, (imgs, labels) in enumerate(loop):
         with torch.no_grad():
-            predictions = model(img)
+            predictions = model(imgs)
 
-        batch_size = img.shape[0]
-        true_img_boxes = predictions_to_bboxes(labels)
-        pred_img_boxes = predictions_to_bboxes(predictions)
+        batch_size = imgs.shape[0]
+        pred_batch_boxes = predictions_to_bboxes(predictions)
+        true_batch_boxes = labels_to_bboxes(labels)
 
         for i in range(batch_size):
-            for cx in range(S):
-                for cy in range(S):
-                    for j in range(B):
-                        pred_cboxes = non_max_suppression(pred_img_boxes[i, cx, cy, j], iou_threshold, conf_threshold)
-                        true_cboxes = true_img_boxes[i, cx, cy, j]
+            pred_img_boxes = pred_batch_boxes[i, :].reshape(-1, 6)
+            pred_img_boxes = non_max_suppression(pred_img_boxes, iou_threshold, conf_threshold)
+            for box in pred_img_boxes:
+                pred_boxes.append([img_idx] + box.tolist())
 
-                        for box in pred_cboxes:
-                            pred_boxes.append([img_idx] + box)
-
-                        for box in true_cboxes:
-                            true_boxes.append([img_idx] + box)
+            true_img_boxes = true_batch_boxes[i, :].reshape(-1, 6)
+            for box in true_img_boxes:
+                if box[0] == 1:
+                    true_boxes.append([img_idx] + box.tolist())
 
             img_idx += 1
     model.train()
@@ -249,7 +252,6 @@ def predictions_to_bboxes(predictions, S=S, B=B, C=C):
                 h = cell[:, idx_offset + 4].unsqueeze(-1)
 
                 box = torch.cat((conf, pred_class, x, y, w, h), dim=-1)
-                print(box.shape)
                 ret[:, cx, cy, i, :] = box
 
     return ret
@@ -260,34 +262,28 @@ def labels_to_bboxes(labels, S=S, B=B, C=C):
     Converts ground truth labels to bounding boxes.
 
     Args:
-        labels: Ground truth labels, has shape (batch_size, S * S * )
-        predictions: Output of CNN, has shape (batch_size, S * S * (C + B * 5))
+        labels: Ground truth labels, has shape (batch_size, S, S, C + 5)
     
     Returns:
-        A pytorch tensor containing bounding box info of shape (batch_size, S, S, B, 6). Each box contains confidence, class, x, y, width, height information, in order. x, y, width, height are all fractions of the width or height of the image, so they're bounded between 0 and 1. Class is the class with the maximum probability over all C class probability predictions.
+        A pytorch tensor containing bounding box info of shape (batch_size, S, S, 6). Each box contains confidence, class, x, y, width, height information, in order. x, y, width, height are all fractions of the width or height of the image, so they're bounded between 0 and 1. Class is the class with the maximum probability over all C class probability predictions.
     """
 
-    predictions = predictions.to('cpu')
+    labels = labels.to('cpu')
 
-    batch_size = predictions.shape[0]
-    predictions = predictions.reshape(batch_size, S, S, C + B * 5)
-
-    ret = torch.empty((batch_size, S, S, B, 6))
+    batch_size = labels.shape[0]
+    ret = torch.empty((batch_size, S, S, 6))
     for cx in range(S):
         for cy in range(S):
-            cell = predictions[:, cx, cy, :]
-            for i in range(B):
-                idx_offset = C + 5 * i
-                pred_class = torch.argmax(cell[:, :C], dim=1).unsqueeze(-1)
-                conf = cell[:, idx_offset].unsqueeze(-1)
-                x = 1 / S * (cell[:, idx_offset + 1].unsqueeze(-1) + cx)
-                y = 1 / S * (cell[:, idx_offset + 2].unsqueeze(-1) + cy)
-                w = cell[:, idx_offset + 3].unsqueeze(-1)
-                h = cell[:, idx_offset + 4].unsqueeze(-1)
+            cell = labels[:, cx, cy, :]
+            pred_class = torch.argmax(cell[:, :C], dim=1).unsqueeze(-1)
+            conf = cell[:, 0].unsqueeze(-1)
+            x = 1 / S * (cell[:, 1].unsqueeze(-1) + cx)
+            y = 1 / S * (cell[:,  2].unsqueeze(-1) + cy)
+            w = cell[:, 3].unsqueeze(-1)
+            h = cell[:, 4].unsqueeze(-1)
 
-                box = torch.cat((conf, pred_class, x, y, w, h), dim=-1)
-                print(box.shape)
-                ret[:, cx, cy, i, :] = box
+            box = torch.cat((conf, pred_class, x, y, w, h), dim=-1)
+            ret[:, cx, cy, :] = box
 
     return ret
 

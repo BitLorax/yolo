@@ -8,8 +8,6 @@ from tqdm import tqdm
 from utils import (
     save_checkpoint,
     load_checkpoint,
-    non_max_suppression,
-    plot_image
 )
 
 from dataset import Dataset
@@ -58,14 +56,6 @@ def train(dataloader, model, optim, loss_fn):
         loop.set_postfix()
     
     print(f'Mean loss: {sum(mean_loss) / len(mean_loss)}')
-
-
-def visualize(dataloader):
-    for x, _ in dataloader:
-        x = x.to(device)
-        bboxes = cellboxes_to_boxes(model(x))
-        bboxes = non_max_suppression(bboxes[0], iou_threshold=0.5, threshold=0.4)
-        plot_image(x[0].permute(1, 2, 0).to('cpu'), bboxes)
 
 
 if __name__ == '__main__':

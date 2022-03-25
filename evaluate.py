@@ -7,7 +7,7 @@ from utils import (
     get_bboxes,
     load_checkpoint,
 
-    cellboxes_to_boxes,
+    predictions_to_bboxes,
     non_max_suppression,
     plot_image
 )
@@ -37,8 +37,8 @@ else:
 def visualize(dataloader):
     for x, _ in dataloader:
         x = x.to(device)
-        bboxes = cellboxes_to_boxes(model(x))
-        bboxes = non_max_suppression(bboxes[0], iou_threshold=0.5, threshold=0.4)
+        bboxes = predictions_to_bboxes(model(x))
+        bboxes = non_max_suppression(bboxes[0], iou_threshold=0.5, conf_threshold=0.4)
         input()
         plot_image(x[0].permute(1, 2, 0).to('cpu'), bboxes)
 
@@ -78,12 +78,8 @@ if __name__ == '__main__':
 
     load_checkpoint(torch.load(load_model_file, map_location=torch.device('cpu')), model, optim)
 
-    pred_boxes, target_boxes = get_bboxes(
-        dataloader, model, iou_threshold=0.5, threshold=0.4
-    )
-    mean_avg_prec = mean_average_precision(
-        pred_boxes, target_boxes, iou_threshold=0.5
-    )
+    pred_boxes, target_boxes = get_bboxes(dataloader, model, iou_threshold=0.5, conf_threshold=0.4)
+    mean_avg_prec = mean_average_precision(pred_boxes, target_boxes, iou_threshold=0.5, plot_curve=True)
     print(f'mAP: {mean_avg_prec}')
 
     print('Beginning visualization.')

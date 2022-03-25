@@ -59,7 +59,7 @@ def non_max_suppression(bboxes, iou_threshold, conf_threshold):
         bboxes = [
             box for box in bboxes if
                 box[1] != chosen_box[1] or
-                intersection_over_union(chosen_box[2:].clone().detach(), box[2:].clone().detatch()) < iou_threshold
+                intersection_over_union(chosen_box[2:].clone().detach(), box[2:].clone().detach()) < iou_threshold
         ]
         ret.append(chosen_box)
 
@@ -137,7 +137,7 @@ def mean_average_precision(pred_boxes, true_boxes, iou_threshold=0.5, plot_curve
         recalls = torch.cat((torch.tensor([0]), recalls))
 
         if plot_curve:
-            plt.plot(precisions.deatch().cpu().numpy(), recalls.detatch().cpu().numpy())
+            plt.plot(precisions.detach().cpu().numpy(), recalls.detach().cpu().numpy())
             plt.show()
 
         average_precisions.append(torch.trapz(precisions, recalls))

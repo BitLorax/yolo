@@ -8,6 +8,10 @@ import pandas as pd
 from params import S, B, C
 
 class Dataset(Dataset):
+    """
+    YOLO dataset loader. Loads images and bounding boxes, edits bounding box format to have shape (S, S, C + 5) by assigning bounding boxes to associated grid cell and modifying x and y to be fraction of cell length. Each resulting box contains class probabilities, confidence (1 if box exists, 0 otherwise), x, y, width, height, in order.
+    """
+
     def __init__(self, dataset, csv_file, transform=None):
         fileloc = 'dataset/' + dataset + '/'
         self.annotations = pd.read_csv(fileloc + csv_file)
@@ -34,18 +38,22 @@ class Dataset(Dataset):
             if self.transform:
                 im, boxes = self.transform(im, boxes)
             
-            label_matrix = torch.zeros((S, S, C + 5 * B))
+            labels = torch.zeros((S, S, C + 5))
             for box in boxes:
                 class_label, x, y, w, h = box.tolist()
                 class_label = int(class_label)
-                i, j = int(S * y), int(S * x)
-                x_cell, y_cell = S * x - j, S * y - i
-                w_cell, h_cell = w * S, h * S
 
-                if label_matrix[i, j, C] == 0:
-                    label_matrix[i, j, C] = 1
-                    box_coordinates = torch.tensor([x_cell, y_cell, w_cell, h_cell])
-                    label_matrix[i, j, C+1:C+5] = box_coordinates
-                    label_matrix[i, j, class_label] = 1
+                cx = int(S * x)
+                cy = int(S * y)
+                x = S * x - cx
+                y = S * y - cy
+
+                labels[cx, cy] = 0
+                labels[cx, cy, class_label] = 1
+                labels[cx, cy, C] = 1
+                labels[cx, cy, C+1] = x
+                labels[cx, cy, C+2] = y
+                labels[cx, cy, C+3] = w
+                labels[cx, cy, C+4] = h
                 
-            return im, label_matrix
+            return im, labels

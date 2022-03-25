@@ -1,5 +1,5 @@
 learning_rate = 1e-6
-device = 'cpu'
+device = 'cuda'
 batch_size = 32
 weight_decay = 0
 momentum = 0.9
@@ -14,7 +14,7 @@ visualize_preds = False
 save_model_file = 'saves/model.pth.tar'
 load_model_file = 'saves/shape/03-17-2022.pth.tar'
 selected_dataset = 'shape'
-data_csv = 'test.csv'
+data_csv = 'train.csv'
 optimizer = 'sgd'
 
 S = 7
@@ -25,3 +25,5 @@ elif selected_dataset == 'shape':
     C = 5
 
 architecture_size = 'semi-mini'
+
+enable_wandb = True

@@ -4,7 +4,7 @@ from PIL import Image, ImageDraw
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-from params import S, B, C
+from params import S, B, C, device
 
 def intersection_over_union(boxA, boxB):
     """
@@ -197,13 +197,14 @@ def get_bboxes(loader, model, iou_threshold, conf_threshold):
     img_idx = 0
 
     loop = tqdm(loader, leave=False)
-    for _, (imgs, labels) in enumerate(loop):
+    for _, (x, y) in enumerate(loop):
+        x, y = x.to(device), y.to(device)
         with torch.no_grad():
-            predictions = model(imgs)
+            out = model(x)
 
-        batch_size = imgs.shape[0]
-        pred_batch_boxes = predictions_to_bboxes(predictions)
-        true_batch_boxes = labels_to_bboxes(labels)
+        batch_size = x.shape[0]
+        pred_batch_boxes = predictions_to_bboxes(out)
+        true_batch_boxes = labels_to_bboxes(y)
 
         for i in range(batch_size):
             pred_img_boxes = pred_batch_boxes[i, :].reshape(-1, 6)

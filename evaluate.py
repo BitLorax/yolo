@@ -76,7 +76,7 @@ if __name__ == '__main__':
         optim = None
     loss_fn = YoloLoss()
 
-    load_checkpoint(torch.load(load_model_file, map_location=torch.device('cpu')), model, optim)
+    load_checkpoint(torch.load(load_model_file, map_location=torch.device(device)), model, optim)
 
     pred_boxes, target_boxes = get_bboxes(dataloader, model, iou_threshold=0.5, conf_threshold=0.4)
     mean_avg_prec = mean_average_precision(pred_boxes, target_boxes, iou_threshold=0.5, plot_curve=True)

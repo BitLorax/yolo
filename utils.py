@@ -137,10 +137,10 @@ def mean_average_precision(pred_boxes, true_boxes, iou_threshold=0.5, plot_curve
         recalls = torch.cat((torch.tensor([0]), recalls))
 
         if plot_curve:
-            plt.plot(precisions.detach().cpu().numpy(), recalls.detach().cpu().numpy())
-            plt.show()
+            plt.plot(precisions.detach().cpu().numpy(), recalls.detach().cpu().numpy(), label=str(c))
 
         average_precisions.append(torch.trapz(precisions, recalls))
+    plt.show()
 
     return sum(average_precisions) / len(average_precisions)
 

@@ -82,6 +82,6 @@ if __name__ == '__main__':
     mean_avg_prec = mean_average_precision(pred_boxes, target_boxes, iou_threshold=0.5, plot_curve=True)
     print(f'mAP: {mean_avg_prec}')
 
-    print('Beginning visualization.')
+    # print('Beginning visualization.')
 
-    visualize(dataloader)
+    # visualize(dataloader)

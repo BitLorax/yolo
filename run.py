@@ -131,22 +131,3 @@ if __name__ == '__main__':
             'optimizer': optim.state_dict()
         }
         save_checkpoint(checkpoint, filename=save_model_file)
-
-        if visualize_preds:
-            visualize(dataloader)
-        
-        # if (epoch + 1) % 5 == 0:
-        #     pred_boxes, target_boxes = get_bboxes(
-        #         dataloader, model, iou_threshold=0.5, threshold=0.4
-        #     )
-        #     mean_avg_prec = mean_average_precision(
-        #         pred_boxes, target_boxes, iou_threshold=0.5
-        #     )
-        #     print(f'mAP: {mean_avg_prec}')
-
-        #     if mean_avg_prec > 0.9:
-                # checkpoint = {
-                #     'state_dict': model.state_dict(),
-                #     'optimizer': optim.state_dict()
-                # }
-                # save_checkpoint(checkpoint, filename=save_model_file)

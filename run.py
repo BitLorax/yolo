@@ -51,7 +51,6 @@ def train(dataloader, model, optim, loss_fn):
 
         if enable_wandb:
             wandb.log({"loss": loss.item()})
-            wandb.watch(model)
 
         loop.set_postfix()
     

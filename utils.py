@@ -175,7 +175,7 @@ def plot_image(image, boxes):
     im.show()
 
 
-def get_bboxes(loader, model, iou_threshold, conf_threshold):
+def get_bboxes(loader, model, iou_threshold, conf_threshold, get_loss=False, loss_fn=None):
     """
     Calculates predicted and true bounding boxes from dataloader. Runs non-maxmimum suppression to filter out predicted bounding boxes. Used to create list of all bounding boxes for mean average precision calculation.
 
@@ -192,6 +192,9 @@ def get_bboxes(loader, model, iou_threshold, conf_threshold):
     pred_boxes = []
     true_boxes = []
 
+    if get_loss:
+        mean_loss = []
+
     model.eval()
 
     img_idx = 0
@@ -201,6 +204,9 @@ def get_bboxes(loader, model, iou_threshold, conf_threshold):
         x, y = x.to(device), y.to(device)
         with torch.no_grad():
             out = model(x)
+        if get_loss:
+            loss = loss_fn(out, y)
+            mean_loss.append(loss.item())
 
         batch_size = x.shape[0]
         pred_batch_boxes = predictions_to_bboxes(out)
@@ -220,7 +226,11 @@ def get_bboxes(loader, model, iou_threshold, conf_threshold):
             img_idx += 1
     model.train()
 
-    return pred_boxes, true_boxes
+    if get_loss:
+        mean_loss = sum(mean_loss) / len(mean_loss)
+    else:
+        mean_loss = -1
+    return pred_boxes, true_boxes, mean_loss
 
 
 def predictions_to_bboxes(predictions, S=S, B=B, C=C):
@@ -247,10 +257,10 @@ def predictions_to_bboxes(predictions, S=S, B=B, C=C):
                 idx_offset = C + 5 * i
                 pred_class = torch.argmax(cell[:, :C], dim=1).unsqueeze(-1)
                 conf = cell[:, idx_offset].unsqueeze(-1)
-                x = 1 / S * (cell[:, idx_offset + 1].unsqueeze(-1) + cx)
-                y = 1 / S * (cell[:, idx_offset + 2].unsqueeze(-1) + cy)
-                w = cell[:, idx_offset + 3].unsqueeze(-1)
-                h = cell[:, idx_offset + 4].unsqueeze(-1)
+                x = 1 / S * (cell[:, idx_offset+1].unsqueeze(-1) + cx)
+                y = 1 / S * (cell[:, idx_offset+2].unsqueeze(-1) + cy)
+                w = cell[:, idx_offset+3].unsqueeze(-1)
+                h = cell[:, idx_offset+4].unsqueeze(-1)
 
                 box = torch.cat((conf, pred_class, x, y, w, h), dim=-1)
                 ret[:, cx, cy, i, :] = box
@@ -277,11 +287,11 @@ def labels_to_bboxes(labels, S=S, B=B, C=C):
         for cy in range(S):
             cell = labels[:, cx, cy, :]
             pred_class = torch.argmax(cell[:, :C], dim=1).unsqueeze(-1)
-            conf = cell[:, 0].unsqueeze(-1)
-            x = 1 / S * (cell[:, 1].unsqueeze(-1) + cx)
-            y = 1 / S * (cell[:,  2].unsqueeze(-1) + cy)
-            w = cell[:, 3].unsqueeze(-1)
-            h = cell[:, 4].unsqueeze(-1)
+            conf = cell[:, C].unsqueeze(-1)
+            x = 1 / S * (cell[:, C+1].unsqueeze(-1) + cx) * conf
+            y = 1 / S * (cell[:,  C+2].unsqueeze(-1) + cy) * conf
+            w = cell[:, C+3].unsqueeze(-1)
+            h = cell[:, C+4].unsqueeze(-1)
 
             box = torch.cat((conf, pred_class, x, y, w, h), dim=-1)
             ret[:, cx, cy, :] = box
@@ -298,3 +308,14 @@ def load_checkpoint(checkpoint, model, optimizer):
     model.load_state_dict(checkpoint["state_dict"])
     optimizer.load_state_dict(checkpoint["optimizer"])
     print('Loaded checkpoint.')
+
+
+if __name__ == '__main__':
+    # a = torch.tensor([[0.2366, 0.8013, 0.1652, 0.1652]])
+    # b = torch.tensor([[-0.0603, 0.8778, -0.944, 0.4068]])
+    # c = torch.tensor([[0.1607, 0.4214, 0.7812, -1.175]])
+    a = torch.tensor([[0.8527, 0.2679, 0.2098, 0.2098]])
+    b = torch.tensor([0.7131, 0.2025, -0.631, -0.5327])
+    c = torch.tensor([0.9365, 0.06975, 0.6991, 0.09948])
+    print(intersection_over_union(a, b))
+    print(intersection_over_union(a, c))

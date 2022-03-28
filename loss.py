@@ -28,14 +28,19 @@ class YoloLoss(nn.Module):
 
         predictions = predictions.reshape(-1, S, S, C + B * 5)
 
+        pred_box1 = predictions[..., C+1:C+5]
+        pred_box2 = predictions[..., C+6, C+10]
+        true_box = labels[..., C+1:C+5]
+        pred_box1[..., 2:4] *= S
+        pred_box2[..., 2:4] *= S
+        true_box[..., 2:4] *= S
         iou1 = intersection_over_union(
-            predictions[..., C+1:C+5], labels[..., C+1:C+5]
+            pred_box1, true_box
         )
         iou2 = intersection_over_union(
-            predictions[..., C+6:C+10], labels[..., C+1:C+5]
+            pred_box2, true_box
         )
-        IOUs = torch.cat([iou1.unsqueeze(0), iou2.unsqueeze(0)], dim=0)
-        _, best_box = torch.max(IOUs, dim=0)
+        _, best_box = torch.max(torch.cat([iou1.unsqueeze(0), iou2.unsqueeze(0)], dim=0), dim=0)
         exists_obj = labels[..., C].unsqueeze(-1)
 
         # Box loss
@@ -45,7 +50,7 @@ class YoloLoss(nn.Module):
         )
         obj_labels = exists_obj * labels[..., C+1:C+5]
 
-        obj_predictions[..., 2:4] = torch.sqrt(torch.abs(obj_predictions[..., 2:4] + 1e-6))
+        obj_predictions[..., 2:4] = exists_obj * torch.sqrt(torch.abs(obj_predictions[..., 2:4] + 1e-6))
         obj_labels[..., 2:4] = torch.sqrt(obj_labels[..., 2:4])
 
         box_loss = self.mse(
@@ -83,21 +88,12 @@ class YoloLoss(nn.Module):
             torch.flatten(noobj_labels, end_dim=-2)
         )
 
-        # doubled_exists_box = torch.cat([exists_obj.unsqueeze(0), exists_obj.unsqueeze(0)], dim=0)
-        # pred_conf = torch.cat([predictions[..., C:C+1].unsqueeze(0), predictions[..., C+5:C+6].unsqueeze(0)], dim=0)
-        # obj_conf_loss = self.mse(
-        #     torch.flatten(doubled_exists_box * pred_conf),
-        #     torch.flatten(doubled_exists_box * IOUs)
-        # )
-        # noobj_conf_loss = self.mse(
-        #     torch.flatten((1 - doubled_exists_box) * pred_conf),
-        #     torch.flatten((1 - doubled_exists_box) * IOUs)
-        # )
-
         # Class loss
+        obj_predictions = exists_obj * predictions[..., :C]
+        obj_labels = exists_obj * labels[..., :C]
         class_loss = self.mse(
-            torch.flatten(exists_obj * predictions[..., :C], end_dim=-2),
-            torch.flatten(exists_obj * labels[..., :C], end_dim=-2)
+            torch.flatten(obj_predictions, end_dim=-2),
+            torch.flatten(obj_labels, end_dim=-2)
         )
 
         # Total loss

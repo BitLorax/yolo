@@ -9,7 +9,8 @@ from model import Yolo
 from loss import YoloLoss
 from params import *
 
-from utils import labels_to_bboxes, plot_image, predictions_to_bboxes
+from utils import labels_to_bboxes, predictions_to_bboxes
+from utils_old import convert_cellboxes
 
 
 def test_predictions_to_bboxes():
@@ -94,7 +95,40 @@ def test_loss():
     loss = loss_fn(out, y)
     print(loss.item())
 
-    y_boxes = labels_to_bboxes(y)
-    out_boxes = predictions_to_bboxes(out)
-    print(y_boxes)
-    print(out_boxes)
+def test_prediction_conversion():
+    torch.manual_seed(0)
+    np.random.seed(0)
+
+    model = Yolo().to(device)
+    if selected_dataset == 'voc':
+        transform = Compose([transforms.Resize((448, 448)), transforms.ToTensor()])
+    elif selected_dataset == 'shape':
+        transform = Compose([transforms.ToTensor()])
+    else:
+        print('Invalid dataset configuration.')
+    dataset = Dataset(
+        selected_dataset,
+        data_csv,
+        transform=transform,
+    )
+    dataloader = DataLoader(
+        dataset=dataset,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
+        shuffle=True,
+        drop_last=True
+    )
+
+    x, y = next(iter(dataloader))   
+    x = x[0:1, ...]
+    y = y[0:1, ...]
+    out = model(x)
+    out_boxes_1 = predictions_to_bboxes(out)
+    out_boxes_2 = convert_cellboxes(out)
+    print(out_boxes_1[0, 0, ...])
+    print(out_boxes_2[0, 0, ...])
+
+
+if __name__ == '__main__':
+    test_prediction_conversion()

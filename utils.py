@@ -310,12 +310,12 @@ def load_checkpoint(checkpoint, model, optimizer):
     print('Loaded checkpoint.')
 
 
-if __name__ == '__main__':
-    # a = torch.tensor([[0.2366, 0.8013, 0.1652, 0.1652]])
-    # b = torch.tensor([[-0.0603, 0.8778, -0.944, 0.4068]])
-    # c = torch.tensor([[0.1607, 0.4214, 0.7812, -1.175]])
-    a = torch.tensor([[0.8527, 0.2679, 0.2098, 0.2098]])
-    b = torch.tensor([0.7131, 0.2025, -0.631, -0.5327])
-    c = torch.tensor([0.9365, 0.06975, 0.6991, 0.09948])
-    print(intersection_over_union(a, b))
-    print(intersection_over_union(a, c))
+# if __name__ == '__main__':
+#     a = torch.tensor([[0.2366, 0.8013, 0.1652, 0.1652]])
+#     b = torch.tensor([[-0.0603, 0.8778, -0.944, 0.4068]])
+#     c = torch.tensor([[0.1607, 0.4214, 0.7812, -1.175]])
+#     a = torch.tensor([[0.8527, 0.2679, 0.2098, 0.2098]])
+#     b = torch.tensor([0.7131, 0.2025, -0.631, -0.5327])
+#     c = torch.tensor([0.9365, 0.06975, 0.6991, 0.09948])
+#     print(intersection_over_union(a, b))
+#     print(intersection_over_union(a, c))

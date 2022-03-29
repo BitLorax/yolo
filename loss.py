@@ -29,7 +29,7 @@ class YoloLoss(nn.Module):
         predictions = predictions.reshape(-1, S, S, C + B * 5)
 
         pred_box1 = predictions[..., C+1:C+5]
-        pred_box2 = predictions[..., C+6, C+10]
+        pred_box2 = predictions[..., C+6:C+10]
         true_box = labels[..., C+1:C+5]
         pred_box1[..., 2:4] *= S
         pred_box2[..., 2:4] *= S

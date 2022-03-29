@@ -11,14 +11,12 @@ from utils import (
     non_max_suppression,
     plot_image
 )
-import utils_old
 
 from dataset import Dataset
 from model import Yolo
-# from loss import YoloLoss
+from loss import YoloLoss
 from params import *
 
-from loss_old import YoloLoss
 
 class Compose(object):
     def __init__(self, transforms):
@@ -88,7 +86,6 @@ if __name__ == '__main__':
         pred_boxes, target_boxes, iou_threshold=0.5, plot_curve=False
     )
     print(f'mAP: {mean_avg_prec}')
-    print(f'old mAP: {utils_old.mean_average_precision(pred_boxes, target_boxes, iou_threshold=0.5)}')
     print(f'Mean loss: {mean_loss}')
 
     # print('Beginning visualization.')

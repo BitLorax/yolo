@@ -40,6 +40,9 @@ class YoloLoss(nn.Module):
         iou2 = intersection_over_union(
             pred_box2, true_box
         )
+        pred_box1[..., 2:4] /= S
+        pred_box2[..., 2:4] /= S
+        true_box[..., 2:4] /= S
         _, best_box = torch.max(torch.cat([iou1.unsqueeze(0), iou2.unsqueeze(0)], dim=0), dim=0)
         exists_obj = labels[..., C].unsqueeze(-1)
 

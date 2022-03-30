@@ -7,8 +7,8 @@ from tqdm import tqdm
 
 from utils import intersection_over_union
 
-WIDTH = 112
-HEIGHT = 112
+WIDTH = 448
+HEIGHT = 448
 
 SHAPES = [0, 3, 4, 5, 6]
 
@@ -44,7 +44,7 @@ def generate_shape(data):
 
     valid = False
     while not valid:
-        s = random.randint(int(min(WIDTH, HEIGHT) * 0.2), int(min(WIDTH, HEIGHT) * 0.6))
+        s = random.randint(int(min(WIDTH, HEIGHT) * 0.1), int(min(WIDTH, HEIGHT) * 0.4))
         x = random.randint(0, WIDTH - s - 1)
         y = random.randint(0, HEIGHT - s - 1)
         valid = True

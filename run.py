@@ -6,6 +6,8 @@ import os
 from tqdm import tqdm
 
 from utils import (
+    get_bboxes,
+    mean_average_precision,
     save_checkpoint,
     load_checkpoint,
 )
@@ -57,12 +59,23 @@ def train(dataloader, model, optim, loss_fn):
     print(f'Mean loss: {sum(mean_loss) / len(mean_loss)}')
 
 
+def test(dataloader, model, loss_fn):
+    pred_boxes, target_boxes, mean_loss = get_bboxes(
+        dataloader, model, iou_threshold=0.5, conf_threshold=0.4, get_loss=True, loss_fn=loss_fn
+    )
+    mean_avg_prec = mean_average_precision(
+        pred_boxes, target_boxes, iou_threshold=0.5, plot_curve=False
+    )
+
+    print(f'mAP: {mean_avg_prec}')
+    print(f'Mean loss: {mean_loss}')
+
+
 if __name__ == '__main__':
     print(f'Config id: {config_id}')
     print()
     print(f'Running on dataset: {selected_dataset}')
     print(f'Save file: {save_model_file}')
-    print(f'Data from: {data_csv}')
     print(f'Epochs: {epochs}')
     if resume_run:
         print('Resuming previous run. ')
@@ -88,13 +101,26 @@ if __name__ == '__main__':
     seed = 123
     torch.manual_seed(seed)
 
-    dataset = Dataset(
+    train_dataset = Dataset(
         selected_dataset,
-        data_csv,
+        train_data_csv,
         transform=transform,
     )
-    dataloader = DataLoader(
-        dataset=dataset,
+    test_dataset = Dataset(
+        selected_dataset,
+        test_data_csv,
+        transform=transform,
+    )
+    train_dataloader = DataLoader(
+        dataset=train_dataset,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
+        shuffle=True,
+        drop_last=True
+    )
+    test_dataloader = DataLoader(
+        dataset=test_dataset,
         batch_size=batch_size,
         num_workers=num_workers,
         pin_memory=pin_memory,
@@ -125,7 +151,8 @@ if __name__ == '__main__':
     for epoch in range(epochs):
         print(f'Epoch: {epoch}')
 
-        train(dataloader, model, optim, loss_fn)
+        train(train_dataloader, model, optim, loss_fn)
+        test(test_dataloader, model, loss_fn)
 
         checkpoint = {
             'state_dict': model.state_dict(),

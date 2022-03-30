@@ -47,13 +47,13 @@ def visualize(dataloader):
 if __name__ == '__main__':
     print(f'Running on dataset: {selected_dataset}')
     print(f'Load file: {load_model_file}')
-    print(f'Data from: {data_csv}')
+    print(f'Data from: {test_data_csv}')
     print()
     input()
 
     dataset = Dataset(
         selected_dataset,
-        data_csv,
+        test_data_csv,
         transform=transform,
     )
     dataloader = DataLoader(

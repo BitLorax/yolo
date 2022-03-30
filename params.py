@@ -14,7 +14,8 @@ visualize_preds = False
 save_model_file = 'saves/model.pth.tar'
 load_model_file = 'drive/MyDrive/model.pth.tar'
 selected_dataset = 'shape'
-data_csv = 'train.csv'
+train_data_csv = 'train.csv'
+test_data_csv = 'test.csv'
 optimizer = 'sgd'
 
 S = 7

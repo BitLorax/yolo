@@ -12,7 +12,7 @@ resume_run = False
 resume_run_id = ''
 visualize_preds = False
 save_model_file = 'saves/model.pth.tar'
-load_model_file = ''
+load_model_file = 'drive/MyDrive/model.pth.tar'
 selected_dataset = 'shape'
 data_csv = 'train.csv'
 optimizer = 'sgd'
@@ -24,6 +24,8 @@ if selected_dataset == 'voc':
 elif selected_dataset == 'shape':
     C = 5
 
-architecture_size = 'semi-mini'
+architecture_size = 'mini'
 
 enable_wandb = True
+
+config_id = 0

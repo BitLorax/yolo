@@ -3,7 +3,7 @@ from torch import nn
 
 from params import S, B, C, architecture_size
 
-if architecture_size == 'full':  # Darknet
+if architecture_size == 'full':
     architecture = [
         (7, 64, 2, 3),  # size, filters, stride, padding
         "M",  # Maxpool
@@ -25,29 +25,20 @@ if architecture_size == 'full':  # Darknet
         (3, 1024, 1, 1)
     ]
     dense_size = 4096
-elif architecture_size == 'mini':  # Mini-Darknet
+elif architecture_size == 'mini':
     architecture = [
         (7, 64, 2, 3),
         "M",
         (3, 192, 1, 1),
         "M",
-        (1, 128, 1, 0),
-        (3, 256, 1, 1),
-        (1, 256, 1, 0),
         (3, 512, 1, 1),
         "M",
-        [(1, 256, 1, 0), (3, 512, 1, 1), 2],
-        (1, 512, 1, 0),
         (3, 1024, 1, 1),
         "M",
-        [(1, 512, 1, 0), (3, 1024, 1, 1), 1],
-        (3, 1024, 1, 1),
         (3, 1024, 2, 1),
-        (3, 1024, 1, 1),
-        (3, 1024, 1, 1)
     ]
     dense_size = 512
-elif architecture_size == 'semi-mini':  # Darknet with mini FC layer
+elif architecture_size == 'semi-mini':
     architecture = [
         (7, 64, 2, 3),
         "M",

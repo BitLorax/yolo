@@ -58,6 +58,8 @@ def train(dataloader, model, optim, loss_fn):
 
 
 if __name__ == '__main__':
+    print(f'Config id: {config_id}')
+    print()
     print(f'Running on dataset: {selected_dataset}')
     print(f'Save file: {save_model_file}')
     print(f'Data from: {data_csv}')

@@ -18,6 +18,11 @@ def intersection_over_union(boxA, boxB):
         The IoU between boxA and boxB.
     """
 
+    if not torch.is_tensor(boxA):
+        boxA = torch.tensor(boxA)
+    if not torch.is_tensor(boxB):
+        boxB = torch.tensor(boxB)
+    
     Aw, Ah = boxA[..., 2:3], boxA[..., 3:4]
     Bw, Bh = boxB[..., 2:3], boxB[..., 3:4]
 

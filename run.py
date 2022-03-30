@@ -56,7 +56,7 @@ def train(dataloader, model, optim, loss_fn):
 
         loop.set_postfix()
     
-    print(f'Mean loss: {sum(mean_loss) / len(mean_loss)}')
+    print(f'Training loss: {sum(mean_loss) / len(mean_loss)}')
 
 
 def test(dataloader, model, loss_fn):
@@ -71,8 +71,8 @@ def test(dataloader, model, loss_fn):
         wandb.log({"validation loss": mean_loss})
         wandb.log({"mAP": mean_avg_prec})
 
+    print(f'Validation loss: {mean_loss}')
     print(f'mAP: {mean_avg_prec}')
-    print(f'Mean loss: {mean_loss}')
 
 
 if __name__ == '__main__':

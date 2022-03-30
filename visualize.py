@@ -3,9 +3,11 @@ from PIL import Image
 import numpy as np
 from utils import plot_image
 
-filename = '0001'
+filename = '0000'
 dataset = 'shape'
-with Image.open('dataset/' + dataset + '/images/' + filename + '.jpg') as im, open('dataset/' + dataset + '/labels/' + filename + '.txt') as data:
+with Image.open('dataset/' + dataset + '/images/' + filename + '.png') as im, open('dataset/' + dataset + '/labels/' + filename + '.txt') as data:
+    if im.width < 448:
+        im = im.resize((448, 448), resample=Image.NEAREST)
     im = np.array(im).astype('float64')
     im /= 255
     boxes = data.readlines()

@@ -67,6 +67,10 @@ def test(dataloader, model, loss_fn):
         pred_boxes, target_boxes, iou_threshold=0.5, plot_curve=False
     )
 
+    if enable_wandb:
+        wandb.log({"validation loss": mean_loss})
+        wandb.log({"mAP": mean_avg_prec})
+
     print(f'mAP: {mean_avg_prec}')
     print(f'Mean loss: {mean_loss}')
 

@@ -50,12 +50,9 @@ def train(dataloader, model, optim, loss_fn):
             param.grad = None
         loss.backward()
         optim.step()
-
-        if enable_wandb:
-            wandb.log({"loss": loss.item()})
-
-        loop.set_postfix()
     
+    if enable_wandb:
+        wandb.log({"loss": loss.item()})
     print(f'Training loss: {sum(mean_loss) / len(mean_loss)}')
 
 
@@ -102,9 +99,6 @@ if __name__ == '__main__':
         else:
             wandb.init(project='yolo', entity='willjhliang', config=config)
 
-    seed = 123
-    torch.manual_seed(seed)
-
     train_dataset = Dataset(
         selected_dataset,
         train_data_csv,
@@ -136,7 +130,7 @@ if __name__ == '__main__':
 
     model = Yolo().to(device)
     if optimizer == 'adam':
-        optim = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)  # REPALCE WITH SGD
+        optim = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     elif optimizer == 'sgd':
         optim = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum, weight_decay=weight_decay)
     else:

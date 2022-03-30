@@ -144,7 +144,7 @@ class Yolo(nn.Module):
         net = nn.Sequential(
             nn.Flatten(),
             nn.Linear(1024 * S * S, dense_size),
-            nn.Dropout(0.0),
+            nn.Dropout(0.5),
             nn.LeakyReLU(0.1),
             nn.Linear(dense_size, S * S * (C + B * 5))
         )

@@ -39,7 +39,7 @@ elif architecture_size == 'mini':
         (3, 512, 1, 1),
         (3, 512, 2, 1),
         (3, 512, 1, 1),
-        (3, 512, 1, 1)
+        (3, 1024, 1, 1)
     ]
     dense_size = 512
 elif architecture_size == 'semi-mini':

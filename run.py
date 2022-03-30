@@ -51,25 +51,19 @@ def train(dataloader, model, optim, loss_fn):
         loss.backward()
         optim.step()
     
-    if enable_wandb:
-        wandb.log({"loss": loss.item()})
-    print(f'Training loss: {sum(mean_loss) / len(mean_loss)}')
+    loss = sum(mean_loss) / len(mean_loss)
+    return loss
 
 
 def test(dataloader, model, loss_fn):
-    pred_boxes, target_boxes, mean_loss = get_bboxes(
+    pred_boxes, target_boxes, loss = get_bboxes(
         dataloader, model, iou_threshold=0.5, conf_threshold=0.4, get_loss=True, loss_fn=loss_fn
     )
     mean_avg_prec = mean_average_precision(
         pred_boxes, target_boxes, iou_threshold=0.5, plot_curve=False
     )
 
-    if enable_wandb:
-        wandb.log({"validation loss": mean_loss})
-        wandb.log({"mAP": mean_avg_prec})
-
-    print(f'Validation loss: {mean_loss}')
-    print(f'mAP: {mean_avg_prec}')
+    return loss, mean_avg_prec
 
 
 if __name__ == '__main__':
@@ -149,8 +143,18 @@ if __name__ == '__main__':
     for epoch in range(epochs):
         print(f'Epoch: {epoch}')
 
-        train(train_dataloader, model, optim, loss_fn)
-        test(test_dataloader, model, loss_fn)
+        loss = train(train_dataloader, model, optim, loss_fn)
+        val_loss, mean_avg_prec = test(test_dataloader, model, loss_fn)
+        
+        print(f'Training loss: {loss}')
+        print(f'Validation loss: {val_loss}')
+        print(f'mAP: {mean_avg_prec}')
+        if enable_wandb:
+            wandb.log({
+                "loss": loss,
+                "val_loss": val_loss,
+                "mAP": mean_avg_prec
+            })
 
         checkpoint = {
             'state_dict': model.state_dict(),

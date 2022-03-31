@@ -199,6 +199,10 @@ def get_bboxes(loader, model, iou_threshold, conf_threshold, get_loss=False, los
 
     if get_loss:
         mean_loss = []
+        mean_box_loss = []
+        mean_obj_conf_loss = []
+        mean_noobj_conf_loss = []
+        mean_class_loss = []
 
     model.eval()
 
@@ -210,8 +214,12 @@ def get_bboxes(loader, model, iou_threshold, conf_threshold, get_loss=False, los
         with torch.no_grad():
             out = model(x)
         if get_loss:
-            loss = loss_fn(out, y)
+            loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss_fn(out, y)
             mean_loss.append(loss.item())
+            mean_box_loss.append(box_loss.item())
+            mean_obj_conf_loss.append(obj_conf_loss.item())
+            mean_noobj_conf_loss.append(noobj_conf_loss.item())
+            mean_class_loss.append(class_loss.item())
 
         batch_size = x.shape[0]
         pred_batch_boxes = predictions_to_bboxes(out)
@@ -233,9 +241,14 @@ def get_bboxes(loader, model, iou_threshold, conf_threshold, get_loss=False, los
 
     if get_loss:
         mean_loss = sum(mean_loss) / len(mean_loss)
+        mean_box_loss = sum(mean_box_loss) / len(mean_box_loss)
+        mean_obj_conf_loss = sum(mean_obj_conf_loss) / len(mean_obj_conf_loss)
+        mean_noobj_conf_loss = sum(mean_noobj_conf_loss) / len(mean_noobj_conf_loss)
+        mean_class_loss = sum(mean_class_loss) / len(mean_class_loss)
+        losses = [mean_loss, mean_box_loss, mean_obj_conf_loss, mean_noobj_conf_loss, mean_class_loss]
     else:
-        mean_loss = -1
-    return pred_boxes, true_boxes, mean_loss
+        losses = None
+    return pred_boxes, true_boxes, losses
 
 
 def predictions_to_bboxes(predictions, S=S, B=B, C=C):

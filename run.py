@@ -40,30 +40,44 @@ else:
 def train(dataloader, model, optim, loss_fn):
     loop = tqdm(dataloader, leave=True)
     mean_loss = []
+    mean_box_loss = []
+    mean_obj_conf_loss = []
+    mean_noobj_conf_loss = []
+    mean_class_loss = []
 
     for _, (x, y) in enumerate(loop):
         x, y = x.to(device), y.to(device)
         out = model(x)
-        loss = loss_fn(out, y)
+        loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss_fn(out, y)
+
         mean_loss.append(loss.item())
+        mean_box_loss.append(box_loss.item())
+        mean_obj_conf_loss.append(obj_conf_loss.item())
+        mean_noobj_conf_loss.append(noobj_conf_loss.item())
+        mean_class_loss.append(class_loss.item())
+
         for param in model.parameters():
             param.grad = None
         loss.backward()
         optim.step()
     
-    loss = sum(mean_loss) / len(mean_loss)
-    return loss
+    mean_loss = sum(mean_loss) / len(mean_loss)
+    mean_box_loss = sum(mean_box_loss) / len(mean_box_loss)
+    mean_obj_conf_loss = sum(mean_obj_conf_loss) / len(mean_obj_conf_loss)
+    mean_noobj_conf_loss = sum(mean_noobj_conf_loss) / len(mean_noobj_conf_loss)
+    mean_class_loss = sum(mean_class_loss) / len(mean_class_loss)
+    return mean_loss, mean_box_loss, mean_obj_conf_loss, mean_noobj_conf_loss, mean_class_loss
 
 
 def test(dataloader, model, loss_fn):
-    pred_boxes, target_boxes, loss = get_bboxes(
+    pred_boxes, target_boxes, losses = get_bboxes(
         dataloader, model, iou_threshold=0.5, conf_threshold=0.4, get_loss=True, loss_fn=loss_fn
     )
-    mean_avg_prec = mean_average_precision(
+    mAP = mean_average_precision(
         pred_boxes, target_boxes, iou_threshold=0.5, plot_curve=False
     )
 
-    return loss, mean_avg_prec
+    return losses[0], losses[1], losses[2], losses[3], losses[4], mAP
 
 
 if __name__ == '__main__':
@@ -143,17 +157,25 @@ if __name__ == '__main__':
     for epoch in range(epochs):
         print(f'Epoch: {epoch}')
 
-        loss = train(train_dataloader, model, optim, loss_fn)
-        val_loss, mean_avg_prec = test(test_dataloader, model, loss_fn)
+        loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = train(train_dataloader, model, optim, loss_fn)
+        val_loss, val_box_loss, val_obj_conf_loss, val_noobj_conf_loss, val_class_loss, mAP = test(test_dataloader, model, loss_fn)
         
         print(f'Training loss: {loss}')
         print(f'Validation loss: {val_loss}')
-        print(f'mAP: {mean_avg_prec}')
+        print(f'mAP: {mAP}')
         if enable_wandb:
             wandb.log({
                 "loss": loss,
+                "box_loss": box_loss,
+                "obj_conf_loss": obj_conf_loss,
+                "noobj_conf_loss": noobj_conf_loss,
+                "class_loss": class_loss,
                 "val_loss": val_loss,
-                "mAP": mean_avg_prec
+                "val_box_loss": val_box_loss,
+                "val_obj_conf_loss": val_obj_conf_loss,
+                "val_noobj_conf_loss": val_noobj_conf_loss,
+                "val_class_loss": val_class_loss,
+                "mAP": mAP
             })
 
         checkpoint = {

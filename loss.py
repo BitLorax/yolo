@@ -100,10 +100,7 @@ class YoloLoss(nn.Module):
         )
 
         # Total loss
-        loss = (
-            self.lambda_coord * box_loss +
-            obj_conf_loss +
-            self.lambda_noobj * noobj_conf_loss +
-            class_loss
-        )
-        return loss
+        box_loss *= self.lambda_coord
+        noobj_conf_loss *= self.lambda_noobj
+        loss = box_loss + obj_conf_loss + noobj_conf_loss + class_loss
+        return loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss

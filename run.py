@@ -2,6 +2,7 @@ import torch
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
 import os
+import shutil
 
 from tqdm import tqdm
 
@@ -183,3 +184,5 @@ if __name__ == '__main__':
             'optimizer': optim.state_dict()
         }
         save_checkpoint(checkpoint, filename=save_model_file)
+        if os.path.isdir('drive/MyDrive/'):
+            shutil.copy(save_model_file, 'drive/MyDrive/model.pth.tar')

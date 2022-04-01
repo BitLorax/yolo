@@ -10,7 +10,6 @@ from loss import YoloLoss
 from params import *
 
 from utils import labels_to_bboxes, predictions_to_bboxes
-from utils_old import convert_cellboxes
 
 
 def test_predictions_to_bboxes():
@@ -79,7 +78,7 @@ def test_loss():
         [
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0.8, 0.7, 0.6, 0.5, 0.4, 1, 0.5, 1, 0.143, 0.143, 1, 0.5, 0.5, 0.286, 0.143],
-            [0, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [1, 1, 1, 1, 1, 0.5, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -198,12 +197,14 @@ def test_loss():
     ])
 
     loss_fn = YoloLoss()
-    loss = loss_fn(out, y)
+    loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss_fn(out, y)
     print(loss.item())
+    print(box_loss.item())
+    print(obj_conf_loss.item())
+    print(noobj_conf_loss.item())
+    print(class_loss.item())
 
-def test_prediction_conversion():
-    torch.manual_seed(0)
-    np.random.seed(0)
+    print()
 
     model = Yolo().to(device)
     if selected_dataset == 'voc':
@@ -214,7 +215,7 @@ def test_prediction_conversion():
         print('Invalid dataset configuration.')
     dataset = Dataset(
         selected_dataset,
-        data_csv,
+        train_data_csv,
         transform=transform,
     )
     dataloader = DataLoader(
@@ -230,10 +231,19 @@ def test_prediction_conversion():
     x = x[0:1, ...]
     y = y[0:1, ...]
     out = model(x)
-    out_boxes_1 = predictions_to_bboxes(out)
-    out_boxes_2 = convert_cellboxes(out)
-    print(out_boxes_1[0, 0, ...])
-    print(out_boxes_2[0, 0, ...])
+    loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss_fn(out, y)
+    print(loss.item())
+    print(box_loss.item())
+    print(obj_conf_loss.item())
+    print(noobj_conf_loss.item())
+    print(class_loss.item())
+
+    out = out.reshape(-1, S, S, C + B * 5)
+    for cx in range(S):
+        for cy in range(S):
+            if y[0, cx, cy, C] == 1:
+                print(y[0, cx, cy])
+                print(out[0, cx, cy])
 
 
 if __name__ == '__main__':

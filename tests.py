@@ -9,7 +9,7 @@ from model import Yolo
 from loss import YoloLoss
 from params import *
 
-from utils import labels_to_bboxes, predictions_to_bboxes
+from utils import predictions_to_bboxes, load_checkpoint
 
 
 def test_predictions_to_bboxes():
@@ -61,10 +61,8 @@ class Compose(object):
             im, bboxes = t(im), bboxes
         return im, bboxes
 
-def test_loss():
-    torch.manual_seed(0)
-    np.random.seed(0)
 
+def test_loss_custom_data():
     out = torch.tensor([
         [
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -204,9 +202,21 @@ def test_loss():
     print(noobj_conf_loss.item())
     print(class_loss.item())
 
-    print()
 
+def test_loss_sample_data():
     model = Yolo().to(device)
+    if optimizer == 'adam':
+        optim = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    elif optimizer == 'sgd':
+        optim = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum, weight_decay=weight_decay)
+    else:
+        print('Invalid optimizer.')
+        optim = None
+    loss_fn = YoloLoss()
+
+    if resume_run:
+        load_checkpoint(torch.load(load_model_file, map_location=torch.device('cpu')), model, optim)
+
     if selected_dataset == 'voc':
         transform = Compose([transforms.Resize((448, 448)), transforms.ToTensor()])
     elif selected_dataset[0:5] == 'shape':
@@ -242,9 +252,15 @@ def test_loss():
     for cx in range(S):
         for cy in range(S):
             if y[0, cx, cy, C] == 1:
-                print(y[0, cx, cy])
-                print(out[0, cx, cy])
+                yc = y[0, cx, cy].tolist()
+                yc = ["%.3f" % i for i in yc] 
+                outc = out[0, cx, cy].tolist()
+                outc = ["%.3f" % i for i in outc] 
+                print(yc)
+                print(outc)
 
 
 if __name__ == '__main__':
-    test_loss()
+    torch.manual_seed(0)
+    np.random.seed(0)
+    test_loss_sample_data()

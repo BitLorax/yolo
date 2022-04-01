@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from params import S, B, C, architecture_size
+from params import S, B, C, architecture_size, dropout
 
 if architecture_size == 'full':
     architecture = [
@@ -85,21 +85,26 @@ class CNNBlock(nn.Module):
 
 class Yolo(nn.Module):
     """
-    YOLO CNN model. Starts with Darknet architecture and finishes with FC layer.
+    YOLO CNN model. Starts with Darknet architecture and finishes with FC layer. Though the original paper doesn't mention it, this model ends by applying softmax on class probabilities to improve training.
 
-    Input is an image with values between 0 and 1. Output is vector of size S * S * (C + B * 5) containing bounding box information for each grid cell.
-    
+    Input is images with values between 0 and 1. Output is has shape (batch_size, S, S, C + B * 5) containing bounding box information for each grid cell.
     """
+
     def __init__(self, in_channels=3, **kwargs):
         super(Yolo, self).__init__()
         self.architecture = architecture
         self.in_channels = in_channels
         self.darknet = self._create_conv_layers(self.architecture)
         self.fcs = self._create_fcs(**kwargs)
+        self.softmax = torch.nn.Softmax(dim=3)
     
     def forward(self, x):
         x = self.darknet(x)
-        return self.fcs(torch.flatten(x, start_dim=1))
+        x = torch.flatten(x, start_dim=1)
+        x = self.fcs(x)
+        x = x.reshape(-1, S, S, C + B * 5)
+        x[:, :, :, :C] = self.softmax(x[:, :, :, :C])
+        return x
     
     def _create_conv_layers(self, architecture):
         layers = []
@@ -148,7 +153,7 @@ class Yolo(nn.Module):
         net = nn.Sequential(
             nn.Flatten(),
             nn.Linear(1024 * S * S, dense_size),
-            nn.Dropout(0.5),
+            nn.Dropout(dropout),
             nn.LeakyReLU(0.1),
             nn.Linear(dense_size, S * S * (C + B * 5))
         )

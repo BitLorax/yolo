@@ -175,8 +175,8 @@ def plot_image(image, boxes):
         x, y = x * im.width, y * im.height
         w, h = w * im.width, h * im.height
         draw.rectangle([(x, y), (x + w, y + h)], outline=(255, 255, 255))
-        draw.text((x + 5, y), str(shape) + " " + str(shape_names[shape]), fill=(255, 255, 255))
-        draw.text((x + w - 20, y), str(conf), fill=(255, 255, 255))
+        # draw.text((x + 5, y), str(shape) + " " + str(shape_names[shape]), fill=(255, 255, 255))
+        # draw.text((x + w - 20, y), str(conf), fill=(255, 255, 255))
     im.show()
 
 
@@ -256,7 +256,7 @@ def predictions_to_bboxes(predictions, S=S, B=B, C=C):
     Converts CNN output to bounding boxes.
 
     Args:
-        predictions: Output of CNN, has shape (batch_size, S * S * (C + B * 5))
+        predictions: Output of CNN, has shape (batch_size, S, S, C + B * 5).
     
     Returns:
         A pytorch tensor containing bounding box info of shape (batch_size, S, S, B, 6). Each box contains confidence, class, x, y, width, height information, in order. x, y, width, height are all fractions of the width or height of the image, so they're bounded between 0 and 1. Class is the class with the maximum probability over all C class probability predictions.
@@ -265,8 +265,6 @@ def predictions_to_bboxes(predictions, S=S, B=B, C=C):
     predictions = predictions.to('cpu')
 
     batch_size = predictions.shape[0]
-    predictions = predictions.reshape(batch_size, S, S, C + B * 5)
-
     ret = torch.empty((batch_size, S, S, B, 6))
     for cx in range(S):
         for cy in range(S):
@@ -326,14 +324,3 @@ def load_checkpoint(checkpoint, model, optimizer):
     model.load_state_dict(checkpoint["state_dict"])
     optimizer.load_state_dict(checkpoint["optimizer"])
     print('Loaded checkpoint.')
-
-
-# if __name__ == '__main__':
-#     a = torch.tensor([[0.2366, 0.8013, 0.1652, 0.1652]])
-#     b = torch.tensor([[-0.0603, 0.8778, -0.944, 0.4068]])
-#     c = torch.tensor([[0.1607, 0.4214, 0.7812, -1.175]])
-#     a = torch.tensor([[0.8527, 0.2679, 0.2098, 0.2098]])
-#     b = torch.tensor([0.7131, 0.2025, -0.631, -0.5327])
-#     c = torch.tensor([0.9365, 0.06975, 0.6991, 0.09948])
-#     print(intersection_over_union(a, b))
-#     print(intersection_over_union(a, c))

@@ -38,10 +38,13 @@ else:
 def visualize(dataloader):
     for x, _ in dataloader:
         x = x.to(device)
-        bboxes = predictions_to_bboxes(model(x))
-        bboxes = non_max_suppression(bboxes[0], iou_threshold=0.5, conf_threshold=0.4)
-        input()
-        plot_image(x[0].permute(1, 2, 0).to('cpu'), bboxes)
+        pred_batch_boxes = predictions_to_bboxes(model(x))
+        for i in range(batch_size):
+            pred_img_boxes = pred_batch_boxes[i, :].reshape(-1, 6)
+            pred_img_boxes = non_max_suppression(pred_img_boxes, iou_threshold=0.5, conf_threshold=0.4)
+            pred_img_boxes = [box.tolist() for box in pred_img_boxes]
+            input()
+            plot_image(x[i].permute(1, 2, 0).to('cpu'), pred_img_boxes)
 
 
 if __name__ == '__main__':
@@ -88,5 +91,4 @@ if __name__ == '__main__':
     print(f'mAP: {mean_avg_prec}')
     print(f'Mean loss: {mean_loss}')
 
-    # print('Beginning visualization.')
     # visualize(dataloader)

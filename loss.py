@@ -8,6 +8,7 @@ class YoloLoss(nn.Module):
     """
     YOLO loss function comparing predicted bounding boxes with actual. Requires B = 2 for the tensor optimizations to work.
     """
+
     def __init__(self):
         super(YoloLoss, self).__init__()
         self.mse = nn.MSELoss(reduction='sum')
@@ -19,14 +20,12 @@ class YoloLoss(nn.Module):
         Calculates the loss between predicted and actual bounding boxes.
 
         Args:
-            predictions: Predicted bounding boxes, has shape (batch_size, S * S * (C + B * 5)).
+            predictions: Predicted bounding boxes, has shape (batch_size, S, S, C + B * 5).
             labels: Actual bounding boxes, has shape (batch_size, S, S, C + 5). Each box contains class probabilities, confidence, x, y, width, height information, in order.
         
         Returns:
             Loss calculated from differences in x, y, width, height, confidence, and class probabilities.
         """
-
-        predictions = predictions.reshape(-1, S, S, C + B * 5)
 
         pred_box1 = predictions[..., C+1:C+5]
         pred_box2 = predictions[..., C+6:C+10]

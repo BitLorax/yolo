@@ -3,6 +3,7 @@ device = 'cuda'
 batch_size = 32
 weight_decay = 0
 momentum = 0.9
+dropout = 0.0
 epochs = 10
 
 num_workers = 2
@@ -13,7 +14,7 @@ resume_run_id = ''
 visualize_preds = False
 save_model_file = 'saves/model.pth.tar'
 load_model_file = 'drive/MyDrive/model.pth.tar'
-selected_dataset = 'shape'
+selected_dataset = 'shape_norot'
 train_data_csv = 'train.csv'
 test_data_csv = 'test.csv'
 optimizer = 'sgd'

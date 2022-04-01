@@ -209,7 +209,7 @@ def test_loss():
     model = Yolo().to(device)
     if selected_dataset == 'voc':
         transform = Compose([transforms.Resize((448, 448)), transforms.ToTensor()])
-    elif selected_dataset == 'shape':
+    elif selected_dataset[0:5] == 'shape':
         transform = Compose([transforms.ToTensor()])
     else:
         print('Invalid dataset configuration.')

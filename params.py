@@ -22,7 +22,7 @@ S = 7
 B = 2
 if selected_dataset == 'voc':
     C = 20
-elif selected_dataset == 'shape':
+elif selected_dataset[0:5] == 'shape':
     C = 5
 
 architecture_size = 'mini'

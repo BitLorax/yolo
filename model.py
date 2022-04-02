@@ -103,10 +103,10 @@ class Yolo(nn.Module):
         x = torch.flatten(x, start_dim=1)
         x = self.fcs(x)
         x = x.reshape(-1, S, S, C + B * 5)
-        x_prob = x[:, :, :, :C].clone()
-        x_box = x[:, :, :, C:].clone()
-        x_prob = self.softmax(x_prob)
-        x = torch.cat((x_prob, x_box), dim=3)
+        # x_prob = x[:, :, :, :C].clone()
+        # x_box = x[:, :, :, C:].clone()
+        # x_prob = self.softmax(x_prob)
+        # x = torch.cat((x_prob, x_box), dim=3)
         return x
     
     def _create_conv_layers(self, architecture):

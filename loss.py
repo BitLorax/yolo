@@ -91,20 +91,20 @@ class YoloLoss(nn.Module):
         )
 
         # Class loss
-        # obj_predictions = exists_obj * predictions[..., :C]
-        # obj_labels = exists_obj * labels[..., :C]
-        # class_loss = self.mse(
-        #     torch.flatten(obj_predictions, end_dim=-2),
-        #     torch.flatten(obj_labels, end_dim=-2)
-        # )
-        obj_predictions = predictions[..., :C]
-        obj_labels = labels[..., :C]
-        class_loss = torch.sum(
-            -torch.log(torch.flatten(obj_predictions, end_dim=2)) *
-            torch.flatten(obj_labels, end_dim=-2),
-            dim=1
+        obj_predictions = exists_obj * predictions[..., :C]
+        obj_labels = exists_obj * labels[..., :C]
+        class_loss = self.mse(
+            torch.flatten(obj_predictions, end_dim=-2),
+            torch.flatten(obj_labels, end_dim=-2)
         )
-        class_loss = torch.sum(class_loss) / torch.sum(class_loss != 0)
+        # obj_predictions = predictions[..., :C]
+        # obj_labels = labels[..., :C]
+        # class_loss = torch.sum(
+        #     -torch.log(torch.flatten(obj_predictions, end_dim=2)) *
+        #     torch.flatten(obj_labels, end_dim=-2),
+        #     dim=1
+        # )
+        # class_loss = torch.sum(class_loss) / torch.sum(class_loss != 0)
 
         # Total loss
         box_loss *= self.lambda_coord

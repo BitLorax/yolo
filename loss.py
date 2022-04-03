@@ -39,6 +39,8 @@ class YoloLoss(nn.Module):
         iou2 = intersection_over_union(
             pred_box2, true_box
         )
+        print(iou1)
+        print(iou2)
         pred_box1[..., 2:4] /= S
         pred_box2[..., 2:4] /= S
         true_box[..., 2:4] /= S
@@ -52,7 +54,8 @@ class YoloLoss(nn.Module):
         )
         obj_labels = exists_obj * labels[..., C+1:C+5]
 
-        obj_predictions[..., 2:4] = exists_obj * torch.sqrt(torch.abs(obj_predictions[..., 2:4] + 1e-6))
+        obj_predictions[..., 2:4] = exists_obj * torch.sign(obj_predictions[..., 2:4]) * \
+            torch.sqrt(torch.abs(obj_predictions[..., 2:4] + 1e-6))
         obj_labels[..., 2:4] = torch.sqrt(obj_labels[..., 2:4])
 
         box_loss = self.mse(

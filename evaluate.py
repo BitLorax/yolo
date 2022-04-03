@@ -43,7 +43,7 @@ def visualize(dataloader):
             pred_img_boxes = pred_batch_boxes[i, :].reshape(-1, 6)
             pred_img_boxes = non_max_suppression(pred_img_boxes, iou_threshold=0.5, conf_threshold=0.4)
             pred_img_boxes = [box.tolist() for box in pred_img_boxes]
-            input()
+            input('>')
             plot_image(x[i].permute(1, 2, 0).to('cpu'), pred_img_boxes)
 
 
@@ -82,13 +82,13 @@ if __name__ == '__main__':
 
     load_checkpoint(torch.load(load_model_file, map_location=torch.device(device)), model, optim)
 
-    pred_boxes, target_boxes, mean_loss = get_bboxes(
-        dataloader, model, iou_threshold=0.5, conf_threshold=0.4, get_loss=True, loss_fn=loss_fn
-    )
-    mean_avg_prec = mean_average_precision(
-        pred_boxes, target_boxes, iou_threshold=0.5, plot_curve=False
-    )
-    print(f'mAP: {mean_avg_prec}')
-    print(f'Mean loss: {mean_loss}')
+    # pred_boxes, target_boxes, mean_loss = get_bboxes(
+    #     dataloader, model, iou_threshold=0.5, conf_threshold=0.4, get_loss=True, loss_fn=loss_fn
+    # )
+    # mean_avg_prec = mean_average_precision(
+    #     pred_boxes, target_boxes, iou_threshold=0.5, plot_curve=False
+    # )
+    # print(f'mAP: {mean_avg_prec}')
+    # print(f'Mean loss: {mean_loss}')
 
-    # visualize(dataloader)
+    visualize(dataloader)

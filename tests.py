@@ -9,7 +9,7 @@ from model import Yolo
 from loss import YoloLoss
 from params import *
 
-from utils import predictions_to_bboxes, load_checkpoint
+from utils import predictions_to_bboxes, load_checkpoint, non_max_suppression, plot_image
 
 
 def test_predictions_to_bboxes():
@@ -238,8 +238,8 @@ def test_loss_sample_data():
     )
 
     x, y = next(iter(dataloader))   
-    x = x[0:1, ...]
-    y = y[0:1, ...]
+    x = x[2:3, ...]
+    y = y[2:3, ...]
     out = model(x)
     loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss_fn(out, y)
     print(loss.item())
@@ -258,6 +258,12 @@ def test_loss_sample_data():
                 outc = ["%.3f" % i for i in outc] 
                 print(yc)
                 print(outc)
+    
+    pred_boxes = predictions_to_bboxes(out)
+    pred_boxes = pred_boxes[0, :].reshape(-1, 6)
+    pred_boxes = non_max_suppression(pred_boxes, iou_threshold=0.5, conf_threshold=0.4)
+    pred_boxes = [box.tolist() for box in pred_boxes]
+    plot_image(x[0].permute(1, 2, 0).to('cpu'), pred_boxes)
 
 
 if __name__ == '__main__':

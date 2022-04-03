@@ -175,8 +175,8 @@ def plot_image(image, boxes):
         x, y = x * im.width, y * im.height
         w, h = w * im.width, h * im.height
         draw.rectangle([(x, y), (x + w, y + h)], outline=(255, 255, 255))
-        # draw.text((x + 5, y), str(shape) + " " + str(shape_names[shape]), fill=(255, 255, 255))
-        # draw.text((x + w - 20, y), str(conf), fill=(255, 255, 255))
+        draw.text((x + 5, y), str(shape) + " " + str(shape_names[shape]), fill=(255, 255, 255))
+        draw.text((x + w - 30, y), "{:.3f}".format(conf), fill=(255, 255, 255))
     im.show()
 
 

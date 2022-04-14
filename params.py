@@ -9,8 +9,8 @@ epochs = 10
 num_workers = 2
 pin_memory = True
 
-resume_run = False
-resume_run_id = ''
+resume_run = True
+resume_run_id = '2wk8csxx'
 visualize_preds = False
 save_model_file = 'saves/model.pth.tar'
 load_model_file = 'drive/MyDrive/model.pth.tar'

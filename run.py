@@ -91,7 +91,6 @@ if __name__ == '__main__':
         print('Resuming previous run. ')
         print(f'Load file: {load_model_file}')
     print()
-    input()
 
     config = {
     'learning_rate': learning_rate,

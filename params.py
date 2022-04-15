@@ -4,7 +4,7 @@ batch_size = 32
 weight_decay = 0
 momentum = 0.9
 dropout = 0.0
-epochs = 1
+epochs = 5
 
 num_workers = 2
 pin_memory = True

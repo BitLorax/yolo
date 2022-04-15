@@ -4,7 +4,7 @@ from PIL import Image, ImageDraw
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-from params import S, B, C, device
+from params import S, B, C, device, verbose
 
 def intersection_over_union(boxA, boxB):
     """
@@ -208,7 +208,10 @@ def get_bboxes(loader, model, iou_threshold, conf_threshold, get_loss=False, los
 
     img_idx = 0
 
-    loop = tqdm(loader, leave=True)
+    if verbose:
+        loop = tqdm(loader, leave=True)
+    else:
+        loop = loader
     for _, (x, y) in enumerate(loop):
         x, y = x.to(device), y.to(device)
         with torch.no_grad():

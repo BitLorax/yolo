@@ -39,7 +39,10 @@ else:
 
 
 def train(dataloader, model, optim, loss_fn):
-    loop = tqdm(dataloader, leave=True)
+    if verbose:
+        loop = tqdm(dataloader, leave=True)
+    else:
+        loop = dataloader
     mean_loss = []
     mean_box_loss = []
     mean_obj_conf_loss = []
@@ -82,8 +85,6 @@ def test(dataloader, model, loss_fn):
 
 
 if __name__ == '__main__':
-    print(f'Config id: {config_id}')
-    print()
     print(f'Running on dataset: {selected_dataset}')
     print(f'Save file: {save_model_file}')
     print(f'Epochs: {epochs}')
@@ -134,7 +135,8 @@ if __name__ == '__main__':
         drop_last=True
     )
 
-    print('Created datasets and dataloaders.')
+    if verbose:
+        print('Created datasets and dataloaders.')
 
     model = Yolo().to(device)
     if optimizer == 'adam':
@@ -149,7 +151,8 @@ if __name__ == '__main__':
     if resume_run:
         load_checkpoint(torch.load(load_model_file), model, optim)
     
-    print('Created model, optimizer, and loss function.')
+    if verbose:
+        print('Created model, optimizer, and loss function.')
 
     if not os.path.exists('saves'):
         os.makedirs('saves')

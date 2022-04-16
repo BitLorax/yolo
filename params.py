@@ -3,17 +3,17 @@ device = 'cuda'
 batch_size = 32
 weight_decay = 0
 momentum = 0.9
-dropout = 0.5
-epochs = 100 
+dropout = 0.0
+epochs = 80 
 
 num_workers = 2
 pin_memory = True
 
 resume_run = True
-resume_run_id = '1hjcfboo'
+resume_run_id = '2wk8csxx'
 visualize_preds = False
 save_model_file = 'saves/model.pth.tar'
-load_model_file = '../input/yolo-checkpoints/04-15-2022_1.pth.tar'
+load_model_file = '../input/yolo-checkpoints/04-03-2022_2.pth.tar'
 selected_dataset = 'shape_norot'
 train_data_csv = 'train.csv'
 test_data_csv = 'test.csv'

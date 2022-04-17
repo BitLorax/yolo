@@ -4,7 +4,7 @@ learning_rate = 1e-6
 batch_size = 32
 weight_decay = 0
 momentum = 0.9
-dropout = 0.5
+dropout = 0.0
 epochs = 100 
 optimizer = 'sgd'
 
@@ -28,7 +28,7 @@ if selected_dataset == 'voc':
 elif selected_dataset[0:5] == 'shape':
     C = 5
 architecture_size = 'mini'
-losses = ['class']
+losses = ['box', 'class']
 
 
 # Misc

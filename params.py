@@ -4,14 +4,14 @@ learning_rate = 1e-6
 batch_size = 32
 weight_decay = 0
 momentum = 0.9
-dropout = 0.0
+dropout = 0.5
 epochs = 100 
 optimizer = 'sgd'
 
 
 # Run configuration
-resume_run = True
-resume_run_id = '16bzgu8t'
+resume_run = False
+resume_run_id = ''
 visualize_preds = False
 save_model_file = 'saves/model.pth.tar'
 load_model_file = '../input/yolo-checkpoints/04-16-2022_1.pth.tar'
@@ -27,7 +27,7 @@ if selected_dataset == 'voc':
     C = 20
 elif selected_dataset[0:5] == 'shape':
     C = 5
-architecture_size = 'semi-mini'
+architecture_size = 'mini'
 losses = ['box', 'obj_conf', 'noobj_conf', 'class']
 
 

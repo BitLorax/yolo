@@ -4,7 +4,7 @@ learning_rate = 1e-6
 batch_size = 32
 weight_decay = 0
 momentum = 0.9
-dropout = 0.0
+dropout = 0.5
 epochs = 100 
 optimizer = 'sgd'
 

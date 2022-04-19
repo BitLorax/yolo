@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 from utils import intersection_over_union
-from params import S, B, C, losses
+from params import S, B, C, losses, device
 
 class YoloLoss(nn.Module):
     """
@@ -32,9 +32,9 @@ class YoloLoss(nn.Module):
 
         # Ignore predictions, create new ones from ground truth to train confidence loss earlier
         pred_box1 = labels[..., C+1:C+5].clone()
-        pred_box1 += torch.normal(mean=0, std=0.1, size=pred_box1.size())
+        pred_box1 += torch.normal(mean=0, std=0.1, size=pred_box1.size()).to(device)
         pred_box2 = labels[..., C+1:C+5].clone()
-        pred_box2 += torch.normal(mean=0, std=0.1, size=pred_box2.size())
+        pred_box2 += torch.normal(mean=0, std=0.1, size=pred_box2.size()).to(device)
 
         true_box = labels[..., C+1:C+5]
         pred_box1[..., 2:4] *= S

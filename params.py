@@ -28,7 +28,12 @@ if selected_dataset == 'voc':
 elif selected_dataset[0:5] == 'shape':
     C = 5
 architecture_size = 'mini'
-losses = ['box', 'class']
+losses = [
+    # 'box',
+    # 'class',
+    'obj_conf',
+    'noobj_conf'
+]
 
 
 # Misc

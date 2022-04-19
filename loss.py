@@ -29,6 +29,13 @@ class YoloLoss(nn.Module):
 
         pred_box1 = predictions[..., C+1:C+5]
         pred_box2 = predictions[..., C+6:C+10]
+
+        # Ignore predictions, create new ones from ground truth to train confidence loss earlier
+        pred_box1 = labels[..., C+1:C+5].clone()
+        pred_box1 += torch.normal(mean=0, std=0.1, size=pred_box1.size())
+        pred_box2 = labels[..., C+1:C+5].clone()
+        pred_box2 += torch.normal(mean=0, std=0.1, size=pred_box2.size())
+
         true_box = labels[..., C+1:C+5]
         pred_box1[..., 2:4] *= S
         pred_box2[..., 2:4] *= S
@@ -39,6 +46,7 @@ class YoloLoss(nn.Module):
         iou2 = intersection_over_union(
             pred_box2, true_box
         )
+
         pred_box1[..., 2:4] /= S
         pred_box2[..., 2:4] /= S
         true_box[..., 2:4] /= S
@@ -98,14 +106,6 @@ class YoloLoss(nn.Module):
             torch.flatten(obj_predictions, end_dim=-2),
             torch.flatten(obj_labels, end_dim=-2)
         )
-        # obj_predictions = predictions[..., :C]
-        # obj_labels = labels[..., :C]
-        # class_loss = torch.sum(
-        #     -torch.log(torch.flatten(obj_predictions, end_dim=2)) *
-        #     torch.flatten(obj_labels, end_dim=-2),
-        #     dim=1
-        # )
-        # class_loss = torch.sum(class_loss) / torch.sum(class_loss != 0)
 
         # Total loss
         box_loss *= self.lambda_coord

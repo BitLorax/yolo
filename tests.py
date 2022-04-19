@@ -2,7 +2,7 @@
 import torch
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
-import numpy as np 
+import numpy as np
 
 from dataset import Dataset
 from model import Yolo
@@ -248,22 +248,12 @@ def test_loss_sample_data():
     print(noobj_conf_loss.item())
     print(class_loss.item())
 
-    out = out.reshape(-1, S, S, C + B * 5)
-    for cx in range(S):
-        for cy in range(S):
-            if y[0, cx, cy, C] == 1:
-                yc = y[0, cx, cy].tolist()
-                yc = ["%.3f" % i for i in yc] 
-                outc = out[0, cx, cy].tolist()
-                outc = ["%.3f" % i for i in outc] 
-                print(yc)
-                print(outc)
     
-    pred_boxes = predictions_to_bboxes(out)
-    pred_boxes = pred_boxes[0, :].reshape(-1, 6)
-    pred_boxes = non_max_suppression(pred_boxes, iou_threshold=0.5, conf_threshold=0.4)
-    pred_boxes = [box.tolist() for box in pred_boxes]
-    plot_image(x[0].permute(1, 2, 0).to('cpu'), pred_boxes)
+    # pred_boxes = predictions_to_bboxes(out)
+    # pred_boxes = pred_boxes[0, :].reshape(-1, 6)
+    # pred_boxes = non_max_suppression(pred_boxes, iou_threshold=0.5, conf_threshold=0.4)
+    # pred_boxes = [box.tolist() for box in pred_boxes]
+    # plot_image(x[0].permute(1, 2, 0).to('cpu'), pred_boxes)
 
 
 if __name__ == '__main__':

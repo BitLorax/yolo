@@ -11,10 +11,10 @@ optimizer = 'sgd'
 
 # Run configuration
 resume_run = True
-resume_run_id = ''
+resume_run_id = 'so7jrktt'
 visualize_preds = False
 save_model_file = 'saves/model.pth.tar'
-load_model_file = '../input/yolo-checkpoints/04-18-2022_1.pth.tar'
+load_model_file = '../input/yolo-checkpoints/04-17-2022_1.pth.tar'
 selected_dataset = 'shape_norot'
 train_data_csv = 'train.csv'
 test_data_csv = 'test.csv'

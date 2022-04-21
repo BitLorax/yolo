@@ -103,7 +103,7 @@ if __name__ == '__main__':
     if optimizer == 'sgd':
         config['momentum'] = momentum
     if enable_wandb:
-        if resume_run:
+        if resume_run and resume_run_id != '':
             wandb.init(project='yolo', entity='willjhliang', config=config, id=resume_run_id, resume='must')
         else:
             wandb.init(project='yolo', entity='willjhliang', config=config)

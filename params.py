@@ -11,7 +11,7 @@ optimizer = 'sgd'
 
 # Run configuration
 resume_run = True
-resume_run_id = '1bkfbhsj'
+resume_run_id = ''
 visualize_preds = False
 save_model_file = 'saves/model.pth.tar'
 load_model_file = '../input/yolo-checkpoints/04-18-2022_1.pth.tar'
@@ -29,8 +29,8 @@ elif selected_dataset[0:5] == 'shape':
     C = 5
 architecture_size = 'mini'
 losses = [
-    # 'box',
-    # 'class',
+    'box',
+    'class',
     'obj_conf',
     'noobj_conf'
 ]

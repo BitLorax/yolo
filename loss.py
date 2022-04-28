@@ -15,7 +15,7 @@ class YoloLoss(nn.Module):
         self.lambda_coord = 5
         self.lambda_noobj = 0.5
 
-    def forward(self, predictions, labels):
+    def forward(self, predictions, labels, conf_only=False):
         """
         Calculates the loss between predicted and actual bounding boxes.
 
@@ -30,11 +30,11 @@ class YoloLoss(nn.Module):
         pred_box1 = predictions[..., C+1:C+5]
         pred_box2 = predictions[..., C+6:C+10]
 
-        # Ignore predictions, create new ones from ground truth to train confidence loss earlier
-        # pred_box1 = labels[..., C+1:C+5].clone()
-        # pred_box1 += torch.normal(mean=0, std=0.1, size=pred_box1.size()).to(device)
-        # pred_box2 = labels[..., C+1:C+5].clone()
-        # pred_box2 += torch.normal(mean=0, std=0.1, size=pred_box2.size()).to(device)
+        if conf_only:  # ignore predictions, create new ones from ground truth to train confidence loss earlier
+            pred_box1 = labels[..., C+1:C+5].clone()
+            pred_box1 += torch.normal(mean=0, std=0.1, size=pred_box1.size()).to(device)
+            pred_box2 = labels[..., C+1:C+5].clone()
+            pred_box2 += torch.normal(mean=0, std=0.1, size=pred_box2.size()).to(device)
 
         true_box = labels[..., C+1:C+5]
         pred_box1[..., 2:4] *= S
@@ -111,12 +111,16 @@ class YoloLoss(nn.Module):
         box_loss *= self.lambda_coord
         noobj_conf_loss *= self.lambda_noobj
         loss = 0
-        if 'box' in losses:
-            loss += box_loss
-        if 'obj_conf' in losses:
-            loss += obj_conf_loss
-        if 'noobj_conf' in losses:
-            loss += noobj_conf_loss
-        if 'class' in losses:
-            loss += class_loss
+
+        if conf_only:  # overwrites param setting
+            loss = obj_conf_loss + noobj_conf_loss
+        else:
+            if 'box' in losses:
+                loss += box_loss
+            if 'obj_conf' in losses:
+                loss += obj_conf_loss
+            if 'noobj_conf' in losses:
+                loss += noobj_conf_loss
+            if 'class' in losses:
+                loss += class_loss
         return loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss

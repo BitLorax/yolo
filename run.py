@@ -38,7 +38,7 @@ else:
     print('Invalid dataset configuration.')
 
 
-def train(dataloader, model, optim, loss_fn):
+def train(dataloader, model, optim, loss_fn, epoch):
     if verbose:
         loop = tqdm(dataloader, leave=True)
     else:
@@ -52,7 +52,11 @@ def train(dataloader, model, optim, loss_fn):
     for _, (x, y) in enumerate(loop):
         x, y = x.to(device), y.to(device)
         out = model(x)
-        loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss_fn(out, y)
+        if (int)(epoch / 10) % 2 == 0:  # alternative confidence-only and all loss every 10 epochs
+            conf_only = False
+        else:
+            conf_only = True
+        loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss_fn(out, y, conf_only)
 
         mean_loss.append(loss.item())
         mean_box_loss.append(box_loss.item())
@@ -102,11 +106,6 @@ if __name__ == '__main__':
     }
     if optimizer == 'sgd':
         config['momentum'] = momentum
-    if enable_wandb:
-        if resume_run and resume_run_id != '':
-            wandb.init(project='yolo', entity='willjhliang', config=config, id=resume_run_id, resume='must')
-        else:
-            wandb.init(project='yolo', entity='willjhliang', config=config)
 
     train_dataset = Dataset(
         selected_dataset,
@@ -148,11 +147,18 @@ if __name__ == '__main__':
         optim = None
     loss_fn = YoloLoss()
 
-    if resume_run:
-        load_checkpoint(torch.load(load_model_file), model, optim)
-    
     if verbose:
         print('Created model, optimizer, and loss function.')
+
+    if enable_wandb:
+        if resume_run and resume_run_id != '':
+            wandb.init(project='yolo', entity='willjhliang', config=config, id=resume_run_id, resume='must')
+        else:
+            wandb.init(project='yolo', entity='willjhliang', config=config)
+        wandb.watch(model)
+
+    if resume_run:
+        load_checkpoint(torch.load(load_model_file), model, optim)
 
     if not os.path.exists('saves'):
         os.makedirs('saves')
@@ -160,7 +166,7 @@ if __name__ == '__main__':
     for epoch in range(epochs):
         print(f'Epoch: {epoch}')
 
-        loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = train(train_dataloader, model, optim, loss_fn)
+        loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = train(train_dataloader, model, optim, loss_fn, epoch)
         val_loss, val_box_loss, val_obj_conf_loss, val_noobj_conf_loss, val_class_loss, mAP = test(test_dataloader, model, loss_fn)
         
         print(f'Training loss: {loss}')

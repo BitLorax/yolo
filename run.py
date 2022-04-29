@@ -52,7 +52,7 @@ def train(dataloader, model, optim, loss_fn, epoch):
     for _, (x, y) in enumerate(loop):
         x, y = x.to(device), y.to(device)
         out = model(x)
-        if (int)(epoch / 10) % 2 == 0:  # alternative confidence-only and all loss every 10 epochs
+        if (int)(epoch / 10) % 2 == 0:  # alternate confidence-only and all loss every 10 epochs
             conf_only = False
         else:
             conf_only = True
@@ -155,7 +155,7 @@ if __name__ == '__main__':
             wandb.init(project='yolo', entity='willjhliang', config=config, id=resume_run_id, resume='must')
         else:
             wandb.init(project='yolo', entity='willjhliang', config=config)
-        wandb.watch(model, log_freq=10)
+        wandb.watch(model, log_freq=(int)(10*len(train_dataloader)/batch_size))
 
     if resume_run:
         load_checkpoint(torch.load(load_model_file), model, optim)

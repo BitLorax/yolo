@@ -155,7 +155,7 @@ if __name__ == '__main__':
             wandb.init(project='yolo', entity='willjhliang', config=config, id=resume_run_id, resume='must')
         else:
             wandb.init(project='yolo', entity='willjhliang', config=config)
-        wandb.watch(model, log_freq=(int)(10*len(train_dataloader)/batch_size))
+        wandb.watch(model, log_freq=10*len(train_dataloader))
 
     if resume_run:
         load_checkpoint(torch.load(load_model_file), model, optim)

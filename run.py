@@ -52,11 +52,12 @@ def train(dataloader, model, optim, loss_fn, epoch):
     for _, (x, y) in enumerate(loop):
         x, y = x.to(device), y.to(device)
         out = model(x)
-        if (int)(epoch / 10) % 2 == 0:  # alternate confidence-only and all loss every 10 epochs
-            conf_only = False
-        else:
-            conf_only = True
-        loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss_fn(out, y, conf_only)
+        # if (int)(epoch / 10) % 2 == 0:  # alternate confidence-only and all loss every 10 epochs
+        #     conf_only = False
+        # else:
+        #     conf_only = True
+        # loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss_fn(out, y, conf_only)
+        loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss_fn(out, y)
 
         mean_loss.append(loss.item())
         mean_box_loss.append(box_loss.item())
@@ -155,7 +156,7 @@ if __name__ == '__main__':
             wandb.init(project='yolo', entity='willjhliang', config=config, id=resume_run_id, resume='must')
         else:
             wandb.init(project='yolo', entity='willjhliang', config=config)
-        wandb.watch(model, log_freq=10*len(train_dataloader))
+        wandb.watch(model, log_freq=10*(len(train_dataloader) + len(test_dataloader)))
 
     if resume_run:
         load_checkpoint(torch.load(load_model_file), model, optim)

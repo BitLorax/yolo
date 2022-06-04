@@ -5,8 +5,6 @@ import random
 import os
 from tqdm import tqdm
 
-from utils import intersection_over_union
-
 WIDTH = 448
 HEIGHT = 448
 
@@ -85,6 +83,19 @@ def generate_image():
     return ret, data
 
 
+def generate_dataset(start_idx, end_idx, csv):
+    for i in tqdm(range(start_idx, end_idx)):
+        im, data = generate_image()
+        im = im.convert('RGB')
+        filename = str(i).zfill(4)
+        im.save(image_dir + '/' + filename + '.png')
+        with open(label_dir + '/' + filename + '.txt', 'w') as f:
+            for i in data:
+                f.write(' '.join(map(str, i)))
+                f.write('\n')
+        csv.write(filename + '.png,' + filename + '.txt\n')
+
+
 dataset_name = 'shape_outline_norot'
 image_dir = 'dataset/' + dataset_name + '/images'
 label_dir = 'dataset/' + dataset_name + '/labels'
@@ -95,13 +106,6 @@ if not os.path.exists(label_dir):
     os.makedirs(label_dir)
 
 with open('dataset/' + dataset_name + '/train.csv', 'w') as csv:
-    for i in tqdm(range(10000)):
-        im, data = generate_image()
-        im = im.convert('RGB')
-        filename = str(i).zfill(4)
-        im.save(image_dir + '/' + filename + '.png')
-        with open(label_dir + '/' + filename + '.txt', 'w') as f:
-            for i in data:
-                f.write(' '.join(map(str, i)))
-                f.write('\n')
-        csv.write(filename + '.png,' + filename + '.txt\n')
+    generate_dataset(0, 9000, csv)
+with open('dataset/' + dataset_name + '/test.csv', 'w') as csv:
+    generate_dataset(9000, 10000, csv)

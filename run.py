@@ -8,9 +8,11 @@ from tqdm import tqdm
 
 from utils import (
     get_bboxes,
+    get_losses,
     mean_average_precision,
     save_checkpoint,
     load_checkpoint,
+    save_predictions,
 )
 
 from dataset import Dataset
@@ -79,14 +81,22 @@ def train(dataloader, model, optim, loss_fn, epoch):
 
 
 def test(dataloader, model, loss_fn):
-    pred_boxes, target_boxes, losses = get_bboxes(
-        dataloader, model, iou_threshold=0.5, conf_threshold=0.4, get_loss=True, loss_fn=loss_fn
-    )
-    mAP = mean_average_precision(
-        pred_boxes, target_boxes, iou_threshold=0.5, plot_curve=False
-    )
+    save_predictions(dataloader, model, loss_fn)
+    losses = get_losses()
+    mAPs = {}
+    conf_threshold = 0.1
+    while conf_threshold <= 0.5:
+        pred_boxes, target_boxes = get_bboxes(
+            model, iou_threshold=0.5, conf_threshold=conf_threshold
+        )
+        mAP = mean_average_precision(
+            pred_boxes, target_boxes, iou_threshold=0.5, plot_curve=False
+        )
+        mAPs['mAP_' + "{:.2f}".format(conf_threshold)] = mAP
 
-    return losses[0], losses[1], losses[2], losses[3], losses[4], mAP
+        conf_threshold += 0.05
+
+    return losses[0], losses[1], losses[2], losses[3], losses[4], mAPs
 
 
 if __name__ == '__main__':
@@ -99,11 +109,11 @@ if __name__ == '__main__':
     print()
 
     config = {
-    'learning_rate': learning_rate,
-    'epochs': epochs,
-    'batch_size': batch_size,
-    'weight_decay': weight_decay,
-    'optimizer': optimizer
+        'learning_rate': learning_rate,
+        'epochs': epochs,
+        'batch_size': batch_size,
+        'weight_decay': weight_decay,
+        'optimizer': optimizer
     }
     if optimizer == 'sgd':
         config['momentum'] = momentum
@@ -156,10 +166,10 @@ if __name__ == '__main__':
             wandb.init(project='yolo', entity='willjhliang', config=config, id=resume_run_id, resume='must')
         else:
             wandb.init(project='yolo', entity='willjhliang', config=config)
-        wandb.watch(model, log_freq=10*(len(train_dataloader) + len(test_dataloader)))
+        wandb.watch(model, log_freq=10*len(train_dataloader))
 
     if resume_run:
-        load_checkpoint(torch.load(load_model_file), model, optim)
+        load_checkpoint(torch.load(load_model_filepath), model, optim)
 
     if not os.path.exists('saves'):
         os.makedirs('saves')
@@ -168,13 +178,14 @@ if __name__ == '__main__':
         print(f'Epoch: {epoch}')
 
         loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = train(train_dataloader, model, optim, loss_fn, epoch)
-        val_loss, val_box_loss, val_obj_conf_loss, val_noobj_conf_loss, val_class_loss, mAP = test(test_dataloader, model, loss_fn)
+        val_loss, val_box_loss, val_obj_conf_loss, val_noobj_conf_loss, val_class_loss, mAPs = test(test_dataloader, model, loss_fn)
+        max_mAP = max(mAPs.values())
         
         print(f'Training loss: {loss}')
         print(f'Validation loss: {val_loss}')
-        print(f'mAP: {mAP}')
+        print(f'Max mAP: {max_mAP}')
         if enable_wandb:
-            wandb.log({
+            log = {
                 "loss": loss,
                 "box_loss": box_loss,
                 "obj_conf_loss": obj_conf_loss,
@@ -185,13 +196,15 @@ if __name__ == '__main__':
                 "val_obj_conf_loss": val_obj_conf_loss,
                 "val_noobj_conf_loss": val_noobj_conf_loss,
                 "val_class_loss": val_class_loss,
-                "mAP": mAP
-            })
+                "mAP": max_mAP,
+            }
+            log.update(mAPs)
+            wandb.log(log)
 
         checkpoint = {
             'state_dict': model.state_dict(),
             'optimizer': optim.state_dict()
         }
-        save_checkpoint(checkpoint, filename=save_model_file)
+        save_checkpoint(checkpoint, filename=save_model_filepath)
         if os.path.isdir('drive/MyDrive/'):
-            shutil.copy(save_model_file, 'drive/MyDrive/model.pth.tar')
+            shutil.copy(save_model_filepath, 'drive/MyDrive/model.pth.tar')

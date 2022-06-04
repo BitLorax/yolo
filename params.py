@@ -5,19 +5,23 @@ batch_size = 32
 weight_decay = 0
 momentum = 0.9
 dropout = 0.5
-epochs = 100 
+epochs = 10
 optimizer = 'sgd'
 
 
 # Run configuration
-resume_run = True
-resume_run_id = 'so7jrktt'
+resume_run = False
+resume_run_id = ''
 visualize_preds = False
-save_model_file = 'saves/model.pth.tar'
-load_model_file = '../input/yolo-checkpoints/04-17-2022_1.pth.tar'
+save_model_file = 'model.pth.tar'
+load_model_file = '04-17-2022_1.pth.tar'
 selected_dataset = 'shape_norot'
 train_data_csv = 'train.csv'
 test_data_csv = 'test.csv'
+
+save_model_filepath = 'saves/' + save_model_file
+load_model_filepath = 'saves/' + selected_dataset + '/' + load_model_file
+predictions_filepath = save_model_filepath.split('.')[0] + '_predictions.npz'
 
 
 # Model and loss configuration

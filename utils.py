@@ -1,43 +1,45 @@
 import torch
 import numpy as np
 from PIL import Image, ImageDraw
-from tqdm import tqdm
 import matplotlib.pyplot as plt
+from os.path import exists
 
-from params import S, B, C, device, verbose
+from params import S, B, C, device, predictions_filepath, verbose
 
-def intersection_over_union(boxA, boxB):
+
+def intersection_over_union(box1, box2):
     """
     Calculates IoU between two boxes.
 
     Args:
-        boxA: First box. Format for x, y, width, height doesn't matter, can be fraction of image or pixel count.
-        boxB: Second box.
+        box1: First box. Format for x, y, width, height doesn't matter, can be fraction of image or pixel count.
+        box2: Second box.
     
     Returns:
         The IoU between boxA and boxB.
     """
 
-    if not torch.is_tensor(boxA):
-        boxA = torch.tensor(boxA)
-    if not torch.is_tensor(boxB):
-        boxB = torch.tensor(boxB)
+    if not torch.is_tensor(box1):
+        box1 = torch.tensor(box1)
+    if not torch.is_tensor(box2):
+        box2 = torch.tensor(box2)
     
-    Aw, Ah = boxA[..., 2:3], boxA[..., 3:4]
-    Bw, Bh = boxB[..., 2:3], boxB[..., 3:4]
+    w1, h1 = box1[..., 2:3], box1[..., 3:4]
+    w2, h2 = box2[..., 2:3], box2[..., 3:4]
 
-    Ax1, Ay1 = boxA[..., 0:1] - Aw / 2, boxA[..., 1:2] - Ah / 2
-    Bx1, By1 = boxB[..., 0:1] - Bw / 2, boxB[..., 1:2] - Bh / 2
-    Ax2, Ay2 = boxA[..., 0:1] + Aw / 2, boxA[..., 1:2] + Ah / 2
-    Bx2, By2 = boxB[..., 0:1] + Bw / 2, boxB[..., 1:2] + Bh / 2
+    x1_left, y1_lower = box1[..., 0:1] - w1 / 2, box1[..., 1:2] - h1 / 2
+    x2_left, y2_lower = box2[..., 0:1] - w2 / 2, box2[..., 1:2] - h2 / 2
+    x1_right, y1_higher = box1[..., 0:1] + w1 / 2, box1[..., 1:2] + h1 / 2
+    x2_right, y2_higher = box2[..., 0:1] + w2 / 2, box2[..., 1:2] + h2 / 2
 
-    x1 = torch.max(Ax1, Bx1)
-    y1 = torch.max(Ay1, By1)
-    x2 = torch.min(Ax2, Bx2)
-    y2 = torch.min(Ay2, By2)
+    x1 = torch.max(x1_left, x2_left)
+    y1 = torch.max(y1_lower, y2_lower)
+    x2 = torch.min(x1_right, x2_right)
+    y2 = torch.min(y1_higher, y2_higher)
 
     intersection = (x2 - x1).clamp(min=0) * (y2 - y1).clamp(min=0)
-    union = abs((Ax2 - Ax1) * (Ay2 - Ay1)) + abs((Bx2 - Bx1) * (By2 - By1)) - intersection
+    union = abs((x1_right - x1_left) * (y1_higher - y1_lower)) + \
+        abs((x2_right - x2_left) * (y2_higher - y2_lower)) - intersection
 
     return intersection / (union + 1e-6)
 
@@ -47,7 +49,8 @@ def non_max_suppression(bboxes, iou_threshold, conf_threshold):
     Filters out bounding boxes using non-max suppression.
 
     Args:
-        bboxes: Bounding boxes to be filtered. Each box should contain confidence, class, x, y, width, height information, in order.
+        bboxes: Bounding boxes to be filtered. Each box should contain confidence, class, x, y, width, height
+        information, in order.
         iou_threshold: Minimum IoU between selected and remaining bounding box to remove it.
         conf_threshold: Minimum confidence required to keep bounding box.
 
@@ -63,38 +66,42 @@ def non_max_suppression(bboxes, iou_threshold, conf_threshold):
         chosen_box = bboxes.pop(0)
         bboxes = [
             box for box in bboxes if
-                box[1] != chosen_box[1] or
-                intersection_over_union(chosen_box[2:].clone().detach(), box[2:].clone().detach()) < iou_threshold
+            box[1] != chosen_box[1] or
+            intersection_over_union(chosen_box[2:].clone().detach(), box[2:].clone().detach()) < iou_threshold
         ]
         ret.append(chosen_box)
 
     return ret
 
 
-def mean_average_precision(pred_boxes, true_boxes, iou_threshold=0.5, plot_curve=False):
+def mean_average_precision(pred_boxes, true_boxes, iou_threshold=0.5, plot_curve=False, use_class=True):
     """
     Calculates the mean average precision between predicted and true bounding boxes.
 
     Args:
-        pred_boxes: A list of predicted bounding boxes. Each box should contain image index, confidence, class, x, y, width, height information, in order.
+        pred_boxes: A list of predicted bounding boxes. Each box should contain image index, confidence, class, x, y,
+        width, height information, in order.
         true_boxes: Ground truth bounding boxes with the same information format as pred_boxes.
-        iou_threshold: Minimum IoU for a predicted bounding box to be resposible for a true box.
+        iou_threshold: Minimum IoU for a predicted bounding box to be responsible for a true box.
+        plot_curve: Display the precision-recall curve.
+        use_class: Whether to consider classes when calculating mAP. When false, calculations can assign any predicted
+        bounding box to a ground truth box, regardless of the predicted class associated with it.
     
     Returns:
         The mean average precision, calculated with an approximated under-curve area without smoothing.
     """
 
     average_precisions = []
-    for c in range(C):
+    for c in range(C if use_class else 1):
         pred_class_boxes = []
         true_class_boxes = []
 
         for box in pred_boxes:
-            if box[2] == c:
+            if box[2] == c or not use_class:
                 pred_class_boxes.append(box)
 
         for box in true_boxes:
-            if box[2] == c:
+            if box[2] == c or not use_class:
                 true_class_boxes.append(box)
 
         img_boxes = {}
@@ -107,8 +114,8 @@ def mean_average_precision(pred_boxes, true_boxes, iou_threshold=0.5, plot_curve
             img_boxes[img] = torch.zeros(img_boxes[img])
 
         pred_class_boxes.sort(key=lambda x: x[2], reverse=True)
-        TP = torch.zeros((len(pred_class_boxes)))
-        FP = torch.zeros((len(pred_class_boxes)))
+        true_positive = torch.zeros((len(pred_class_boxes)))
+        false_positive = torch.zeros((len(pred_class_boxes)))
 
         if len(true_class_boxes) == 0:
             continue
@@ -126,26 +133,30 @@ def mean_average_precision(pred_boxes, true_boxes, iou_threshold=0.5, plot_curve
             
             if best_iou > iou_threshold:
                 if img_boxes[img_idx][best_idx] == 0:
-                    TP[i] = 1
+                    true_positive[i] = 1
                     img_boxes[img_idx][best_idx] = 1
                 else:
-                    FP[i] = 1
+                    false_positive[i] = 1
             else:
-                FP[i] = 1
+                false_positive[i] = 1
 
-        TP_cumsum = torch.cumsum(TP, dim=0)
-        FP_cumsum = torch.cumsum(FP, dim=0)
-        recalls = TP_cumsum / (len(true_class_boxes) + 1e-6)
-        precisions = torch.divide(TP_cumsum, (TP_cumsum + FP_cumsum + 1e-6))
+        true_positive_cumsum = torch.cumsum(true_positive, dim=0)
+        false_positive_cumsum = torch.cumsum(false_positive, dim=0)
+        recalls = true_positive_cumsum / (len(true_class_boxes) + 1e-6)
+        precisions = torch.divide(true_positive_cumsum, (true_positive_cumsum + false_positive_cumsum + 1e-6))
 
         precisions = torch.cat((torch.tensor([1]), precisions))
         recalls = torch.cat((torch.tensor([0]), recalls))
 
         if plot_curve:
-            plt.plot(precisions.detach().cpu().numpy(), recalls.detach().cpu().numpy(), label=str(c))
+            plt.plot(recalls.detach().cpu().numpy(), precisions.detach().cpu().numpy(), label=str(c))
 
         average_precisions.append(torch.trapz(precisions, recalls))
-    plt.show()
+
+    if plot_curve:
+        plt.xlim([0, 1])
+        plt.ylim([0, 1])
+        plt.show()
 
     return sum(average_precisions) / len(average_precisions)
 
@@ -156,7 +167,9 @@ def plot_image(image, boxes):
 
     Args:
         image: The image to be plotted. All values should be between 0 and 1.
-        boxes: A list of bounding boxes including their confidence and class prediction. Input should contain confidence, class, x, y, width, height information, in order. x, y, width, height values should be fractions of image width and height, bounded between 0 and 1.
+        boxes: A list of bounding boxes including their confidence and class prediction. Input should contain
+        confidence, class, x, y, width, height information, in order. x, y, width, height values should be fractions
+        of image width and height, bounded between 0 and 1.
     
     Returns:
         Nothing. Will plot and show the image with bounding boxes.
@@ -180,81 +193,54 @@ def plot_image(image, boxes):
     im.show()
 
 
-def get_bboxes(loader, model, iou_threshold, conf_threshold, get_loss=False, loss_fn=None):
+def get_losses():
+    _, _, losses = load_predictions()
+    return losses
+
+
+def get_bboxes(model, iou_threshold, conf_threshold):
     """
-    Calculates predicted and true bounding boxes from dataloader. Runs non-maxmimum suppression to filter out predicted bounding boxes. Used to create list of all bounding boxes for mean average precision calculation.
+    Calculates predicted and true bounding boxes from dataloader. Runs non-maximum suppression to filter out predicted
+    bounding boxes. Used to create list of all bounding boxes for mean average precision calculation.
 
     Args:
-        loader: Pytorch dataloader containing images and labels.
         model: CNN used to predict bounding boxes from images.
         iou_threshold: Passed to non_max_suppression() as argument.
         conf_threshold: Passed to non_max_suppression() as argument.
 
     Returns:
-        Two lists of bounding boxes, one for predicted and one for true. Each box contains image index, confidence, class, x, y, width, height, in order.
+        Two lists of bounding boxes, one for predicted and one for true. Each box contains image index, confidence,
+        class, x, y, width, height, in order.
     """
 
     pred_boxes = []
     true_boxes = []
-
-    if get_loss:
-        mean_loss = []
-        mean_box_loss = []
-        mean_obj_conf_loss = []
-        mean_noobj_conf_loss = []
-        mean_class_loss = []
-
     model.eval()
-
     img_idx = 0
 
-    if verbose:
-        loop = tqdm(loader, leave=True)
-    else:
-        loop = loader
-    for _, (x, y) in enumerate(loop):
-        x, y = x.to(device), y.to(device)
-        with torch.no_grad():
-            out = model(x)
-        if get_loss:
-            loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss_fn(out, y)
-            mean_loss.append(loss.item())
-            mean_box_loss.append(box_loss.item())
-            mean_obj_conf_loss.append(obj_conf_loss.item())
-            mean_noobj_conf_loss.append(noobj_conf_loss.item())
-            mean_class_loss.append(class_loss.item())
+    predictions, labels, _ = load_predictions()
+  
+    dataset_size = predictions.shape[0]
+    pred_batch_boxes = predictions_to_bboxes(torch.from_numpy(predictions))
+    true_batch_boxes = labels_to_bboxes(torch.from_numpy(labels))
 
-        batch_size = x.shape[0]
-        pred_batch_boxes = predictions_to_bboxes(out)
-        true_batch_boxes = labels_to_bboxes(y)
+    for i in range(dataset_size):
+        pred_img_boxes = pred_batch_boxes[i, :].reshape(-1, 6)
+        pred_img_boxes = non_max_suppression(pred_img_boxes, iou_threshold, conf_threshold)
+        for box in pred_img_boxes:
+            pred_boxes.append([img_idx] + box.tolist())
 
-        for i in range(batch_size):
-            pred_img_boxes = pred_batch_boxes[i, :].reshape(-1, 6)
-            pred_img_boxes = non_max_suppression(pred_img_boxes, iou_threshold, conf_threshold)
-            for box in pred_img_boxes:
-                pred_boxes.append([img_idx] + box.tolist())
+        true_img_boxes = true_batch_boxes[i, :].reshape(-1, 6)
+        for box in true_img_boxes:
+            if box[0] == 1:
+                true_boxes.append([img_idx] + box.tolist())
 
-            true_img_boxes = true_batch_boxes[i, :].reshape(-1, 6)
-            for box in true_img_boxes:
-                if box[0] == 1:
-                    true_boxes.append([img_idx] + box.tolist())
+        img_idx += 1
 
-            img_idx += 1
-    model.train()
-
-    if get_loss:
-        mean_loss = sum(mean_loss) / len(mean_loss)
-        mean_box_loss = sum(mean_box_loss) / len(mean_box_loss)
-        mean_obj_conf_loss = sum(mean_obj_conf_loss) / len(mean_obj_conf_loss)
-        mean_noobj_conf_loss = sum(mean_noobj_conf_loss) / len(mean_noobj_conf_loss)
-        mean_class_loss = sum(mean_class_loss) / len(mean_class_loss)
-        losses = [mean_loss, mean_box_loss, mean_obj_conf_loss, mean_noobj_conf_loss, mean_class_loss]
-    else:
-        losses = None
-    return pred_boxes, true_boxes, losses
+    return pred_boxes, true_boxes
 
 
-def predictions_to_bboxes(predictions, S=S, B=B, C=C):
+def predictions_to_bboxes(predictions):
     """
     Converts CNN output to bounding boxes.
 
@@ -262,7 +248,10 @@ def predictions_to_bboxes(predictions, S=S, B=B, C=C):
         predictions: Output of CNN, has shape (batch_size, S, S, C + B * 5).
     
     Returns:
-        A pytorch tensor containing bounding box info of shape (batch_size, S, S, B, 6). Each box contains confidence, class, x, y, width, height information, in order. x, y, width, height are all fractions of the width or height of the image, so they're bounded between 0 and 1. Class is the class with the maximum probability over all C class probability predictions.
+        A pytorch tensor containing bounding box info of shape (batch_size, S, S, B, 6). Each box contains confidence,
+        class, x, y, width, height information, in order. x, y, width, height are all fractions of the width or height
+        of the image, so they're bounded between 0 and 1. Class is the class with the maximum probability over all C
+        class probability predictions.
     """
 
     predictions = predictions.to('cpu')
@@ -287,7 +276,7 @@ def predictions_to_bboxes(predictions, S=S, B=B, C=C):
     return ret
 
 
-def labels_to_bboxes(labels, S=S, B=B, C=C):
+def labels_to_bboxes(labels):
     """
     Converts ground truth labels to bounding boxes.
 
@@ -295,7 +284,10 @@ def labels_to_bboxes(labels, S=S, B=B, C=C):
         labels: Ground truth labels, has shape (batch_size, S, S, C + 5)
     
     Returns:
-        A pytorch tensor containing bounding box info of shape (batch_size, S, S, 6). Each box contains confidence, class, x, y, width, height information, in order. x, y, width, height are all fractions of the width or height of the image, so they're bounded between 0 and 1. Class is the class with the maximum probability over all C class probability predictions.
+        A pytorch tensor containing bounding box info of shape (batch_size, S, S, 6). Each box contains confidence,
+        class, x, y, width, height information, in order. x, y, width, height are all fractions of the width or height
+        of the image, so they're bounded between 0 and 1. Class is the class with the maximum probability over all C
+        class probability predictions.
     """
 
     labels = labels.to('cpu')
@@ -327,3 +319,63 @@ def load_checkpoint(checkpoint, model, optimizer):
     model.load_state_dict(checkpoint["state_dict"])
     optimizer.load_state_dict(checkpoint["optimizer"])
     print('Loaded checkpoint.')
+
+
+def save_predictions(dataloader, model, loss_fn):
+    """
+    Saves unfiltered output of YOLO model along with losses and the ground truth labels corresponding
+    to each prediction.
+
+    Args:
+        dataloader: Pytorch dataloader containing images and labels.
+        model: CNN used to predict bounding boxes from images.
+        loss_fn: Loss function used to calculate loss between predictions and labels.
+    
+    Returns:
+        Nothing. Saves predictions, losses, and labels to .npz file.
+    """
+
+    model.eval()
+    mean_loss = []
+    mean_box_loss = []
+    mean_obj_conf_loss = []
+    mean_noobj_conf_loss = []
+    mean_class_loss = []
+    predictions = torch.empty(0).to(device)
+    labels = torch.empty(0).to(device)
+    for _, (x, y) in enumerate(dataloader):
+        x, y = x.to(device), y.to(device)
+        with torch.no_grad():
+            out = model(x)
+        loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss_fn(out, y)
+        mean_loss.append(loss.item())
+        mean_box_loss.append(box_loss.item())
+        mean_obj_conf_loss.append(obj_conf_loss.item())
+        mean_noobj_conf_loss.append(noobj_conf_loss.item())
+        mean_class_loss.append(class_loss.item())
+        predictions = torch.cat((predictions, out), dim=0)
+        labels = torch.cat((labels, y), dim=0)
+
+    mean_loss = sum(mean_loss) / len(mean_loss)
+    mean_box_loss = sum(mean_box_loss) / len(mean_box_loss)
+    mean_obj_conf_loss = sum(mean_obj_conf_loss) / len(mean_obj_conf_loss)
+    mean_noobj_conf_loss = sum(mean_noobj_conf_loss) / len(mean_noobj_conf_loss)
+    mean_class_loss = sum(mean_class_loss) / len(mean_class_loss)
+
+    losses = [mean_loss, mean_box_loss, mean_obj_conf_loss, mean_noobj_conf_loss, mean_class_loss]
+    losses = np.array(losses)
+    predictions = predictions.cpu().numpy()
+    labels = labels.cpu().numpy()
+
+    np.savez(predictions_filepath, predictions=predictions, losses=losses, labels=labels)
+    model.train()
+    if verbose:
+        print('Saved predictions, losses, and labels in ' + predictions_filepath + '.')
+
+
+def load_predictions():
+    if not exists(predictions_filepath):
+        print('ERROR: Missing predictions save file. Run save_predictions(loader, model, loss_fn) first.')
+        return
+    data = np.load(predictions_filepath)
+    return data['predictions'], data['labels'], data['losses']

@@ -215,7 +215,7 @@ def test_loss_sample_data():
     loss_fn = YoloLoss()
 
     if resume_run:
-        load_checkpoint(torch.load(load_model_file, map_location=torch.device('cpu')), model, optim)
+        load_checkpoint(torch.load(load_model_filepath, map_location=torch.device('cpu')), model, optim)
 
     if selected_dataset == 'voc':
         transform = Compose([transforms.Resize((448, 448)), transforms.ToTensor()])

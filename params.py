@@ -14,8 +14,8 @@ resume_run = False
 resume_run_id = ''
 visualize_preds = False
 save_model_file = 'model.pth.tar'
-load_model_file = '04-17-2022_1.pth.tar'
-selected_dataset = 'shape_norot'
+load_model_file = ''
+selected_dataset = 'shape_outline_norot'
 train_data_csv = 'train.csv'
 test_data_csv = 'test.csv'
 

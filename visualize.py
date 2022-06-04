@@ -4,8 +4,9 @@ import numpy as np
 from utils import plot_image
 
 filename = '0000'
-dataset = 'shape'
-with Image.open('dataset/' + dataset + '/images/' + filename + '.png') as im, open('dataset/' + dataset + '/labels/' + filename + '.txt') as data:
+dataset_name = 'shape_outline_norot'
+with Image.open('dataset/' + dataset_name + '/images/' + filename + '.png') as im,\
+        open('dataset/' + dataset_name + '/labels/' + filename + '.txt') as data:
     if im.width < 448:
         im = im.resize((448, 448), resample=Image.NEAREST)
     im = np.array(im).astype('float64')

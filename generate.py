@@ -12,6 +12,7 @@ HEIGHT = 448
 
 SHAPES = [0, 3, 4, 5, 6]
 
+
 def overlaps(boxA, boxB):
     Aw, Ah = boxA[2:3], boxA[3:4]
     Bw, Bh = boxB[2:3], boxB[3:4]
@@ -56,17 +57,21 @@ def generate_shape(data):
                 valid = False
 
     if shape == 0:
-        draw.ellipse([(x, y), (x + s, y + s)], fill=color)
+        # draw.ellipse([(x, y), (x + s, y + s)], fill=color)
+        draw.ellipse([(x, y), (x + s, y + s)], fill=None, outline="white")
     else:
-        rotation = random.randint(0, 360)
+        # rotation = random.randint(0, 360)
+        rotation = 0
         r = (int)(s / 2)
-        draw.regular_polygon((x + r, y + r, r), shape, rotation=rotation, fill=color)
+        # draw.regular_polygon((x + r, y + r, r), shape, rotation=rotation, fill=color)
+        draw.regular_polygon((x + r, y + r, r), shape, rotation=rotation, fill=None, outline="white")
 
     s = s / WIDTH
     x = x / WIDTH + s / 2
     y = y / HEIGHT + s / 2
 
     return im, shape_idx, x, y, s
+
 
 def generate_image():
     num_shapes = random.randint(1, 3)
@@ -79,18 +84,23 @@ def generate_image():
 
     return ret, data
 
-if not os.path.exists('dataset/shape/images'):
-    os.makedirs('dataset/shape/images')
-if not os.path.exists('dataset/shape/labels'):
-    os.makedirs('dataset/shape/labels')
 
-with open('dataset/shape/train.csv', 'w') as csv:
+dataset_name = 'shape_outline_norot'
+image_dir = 'dataset/' + dataset_name + '/images'
+label_dir = 'dataset/' + dataset_name + '/labels'
+
+if not os.path.exists(image_dir):
+    os.makedirs(image_dir)
+if not os.path.exists(label_dir):
+    os.makedirs(label_dir)
+
+with open('dataset/' + dataset_name + '/train.csv', 'w') as csv:
     for i in tqdm(range(10000)):
         im, data = generate_image()
         im = im.convert('RGB')
         filename = str(i).zfill(4)
-        im.save('dataset/shape/images/' + filename + '.png')
-        with open('dataset/shape/labels/' + filename + '.txt', 'w') as f:
+        im.save(image_dir + '/' + filename + '.png')
+        with open(label_dir + '/' + filename + '.txt', 'w') as f:
             for i in data:
                 f.write(' '.join(map(str, i)))
                 f.write('\n')

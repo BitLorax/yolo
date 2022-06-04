@@ -5,7 +5,7 @@ batch_size = 32
 weight_decay = 0
 momentum = 0.9
 dropout = 0.5
-epochs = 10
+epochs = 100
 optimizer = 'sgd'
 
 

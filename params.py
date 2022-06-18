@@ -10,7 +10,7 @@ optimizer = 'sgd'
 
 
 # Run configuration
-resume_run = False
+resume_run = True
 resume_run_id = 'so7jrktt'
 visualize_preds = False
 save_model_file = 'model.pth.tar'
@@ -45,5 +45,5 @@ losses = [
 num_workers = 2
 pin_memory = True
 device = 'cuda'
-enable_wandb = True
-verbose = False
+enable_wandb = False
+verbose = True

@@ -59,6 +59,28 @@ elif architecture_size == 'semi-mini':
         (3, 1024, 1, 1)
     ]
     dense_size = 1024
+elif architecture_size == "mini-dense":
+    architecture = [
+        (7, 64, 2, 3),  # size, filters, stride, padding
+        "M",  # Maxpool
+        (3, 192, 1, 1),
+        "M",
+        (1, 128, 1, 0),
+        (3, 256, 1, 1),
+        (1, 256, 1, 0),
+        (3, 512, 1, 1),
+        "M",
+        [(1, 256, 1, 0), (3, 512, 1, 1), 4],  # [..., repeats]
+        (1, 512, 1, 0),
+        (3, 1024, 1, 1),
+        "M",
+        [(1, 512, 1, 0), (3, 1024, 1, 1), 2],
+        (3, 1024, 1, 1),
+        (3, 1024, 2, 1),
+        (3, 1024, 1, 1),
+        (3, 1024, 1, 1)
+    ]
+    dense_size = 512
 
 
 def init_weights(m):
@@ -78,19 +100,22 @@ class CNNBlock(nn.Module):
     def forward(self, x):
         return self.leakyrelu(self.batchnorm(self.conv(x)))
 
+
 class Yolo(nn.Module):
     """
-    YOLO CNN model. Starts with Darknet architecture and finishes with FC layer. Though the original paper doesn't mention it, this model ends by applying softmax on class probabilities to improve training.
+    YOLO CNN model. Starts with Darknet architecture and finishes with FC layer. Though the original paper doesn't
+    mention it, this model ends by applying softmax on class probabilities to improve training.
 
-    Input is images with values between 0 and 1. Output is has shape (batch_size, S, S, C + B * 5) containing bounding box information for each grid cell.
+    Input is images with values between 0 and 1. Output is has shape (batch_size, S, S, C + B * 5) containing bounding
+    box information for each grid cell.
     """
 
-    def __init__(self, in_channels=3, **kwargs):
+    def __init__(self, in_channels=3):
         super(Yolo, self).__init__()
         self.architecture = architecture
         self.in_channels = in_channels
-        self.darknet = self._create_conv_layers(self.architecture)
-        self.fcs = self._create_fcs(**kwargs)
+        self.darknet = self._create_conv_layers()
+        self.fcs = self._create_fcs()
         self.softmax = torch.nn.Softmax(dim=3)
     
     def forward(self, x):
@@ -98,13 +123,9 @@ class Yolo(nn.Module):
         x = torch.flatten(x, start_dim=1)
         x = self.fcs(x)
         x = x.reshape(-1, S, S, C + B * 5)
-        # x_prob = x[:, :, :, :C].clone()
-        # x_box = x[:, :, :, C:].clone()
-        # x_prob = self.softmax(x_prob)
-        # x = torch.cat((x_prob, x_box), dim=3)
         return x
     
-    def _create_conv_layers(self, architecture):
+    def _create_conv_layers(self):
         layers = []
         in_channels = self.in_channels
 
@@ -147,7 +168,8 @@ class Yolo(nn.Module):
         net.apply(init_weights)
         return net
 
-    def _create_fcs(self):
+    @staticmethod
+    def _create_fcs():
         net = nn.Sequential(
             nn.Flatten(),
             nn.Linear(1024 * S * S, dense_size),

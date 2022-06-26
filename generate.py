@@ -55,14 +55,12 @@ def generate_shape(data):
                 valid = False
 
     if shape == 0:
-        # draw.ellipse([(x, y), (x + s, y + s)], fill=color)
-        draw.ellipse([(x, y), (x + s, y + s)], fill=None, outline="white")
+        draw.ellipse([(x, y), (x + s, y + s)], fill=color)
     else:
         # rotation = random.randint(0, 360)
         rotation = 0
         r = (int)(s / 2)
-        # draw.regular_polygon((x + r, y + r, r), shape, rotation=rotation, fill=color)
-        draw.regular_polygon((x + r, y + r, r), shape, rotation=rotation, fill=None, outline="white")
+        draw.regular_polygon((x + r, y + r, r), shape, rotation=rotation, fill=color)
 
     s = s / WIDTH
     x = x / WIDTH + s / 2

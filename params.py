@@ -1,20 +1,20 @@
 
 # Training parameters
-learning_rate = 1e-6
+learning_rate = 1e-5
 batch_size = 32
 weight_decay = 0
 momentum = 0.9
 dropout = 0.5
-epochs = 300
-optimizer = 'sgd'
+epochs = 500
+optimizer = 'adam'
 
 
 # Run configuration
-resume_run = True
-resume_run_id = 'so7jrktt'
+resume_run = False
+resume_run_id = ''
 visualize_preds = False
 save_model_file = 'model.pth.tar'
-load_model_file = '04-17-2022_1.pth.tar'
+load_model_file = ''
 selected_dataset = 'shape_norot'
 train_data_csv = 'train.csv'
 test_data_csv = 'test.csv'
@@ -32,7 +32,7 @@ if selected_dataset == 'voc':
     C = 20
 elif selected_dataset[0:5] == 'shape':
     C = 5
-architecture_size = 'mini'
+architecture_size = 'mini-dense'
 losses = [
     'box',
     'class',
@@ -45,5 +45,5 @@ losses = [
 num_workers = 2
 pin_memory = True
 device = 'cuda'
-enable_wandb = False
-verbose = True
+enable_wandb = True
+verbose = False

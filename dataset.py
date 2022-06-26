@@ -1,5 +1,5 @@
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset as TorchDataset
 
 import os
 from PIL import Image
@@ -7,9 +7,13 @@ import pandas as pd
 
 from params import S, B, C
 
-class Dataset(Dataset):
+
+class Dataset(TorchDataset):
     """
-    YOLO dataset loader. Loads images and bounding boxes, edits bounding box format to have shape (S, S, C + 5) by assigning bounding boxes to associated grid cell and modifying x and y to be fraction of cell length. Each resulting box contains class probabilities, confidence (1 if box exists, 0 otherwise), x, y, width, height, in order.
+    YOLO dataset loader that loads images and bounding boxes, edits bounding box format to have shape (S, S, C + 5) by
+    assigning bounding boxes to associated grid cell and modifying x and y to be fraction of cell length.
+    Each resulting box contains class probabilities, confidence (1 if box exists, 0 otherwise), x, y, width, height,
+    in order.
     """
 
     def __init__(self, dataset, csv_file, transform=None):
@@ -48,12 +52,12 @@ class Dataset(Dataset):
                 x = S * x - cx
                 y = S * y - cy
 
-                labels[cx, cy] = 0
-                labels[cx, cy, class_label] = 1
-                labels[cx, cy, C] = 1
-                labels[cx, cy, C+1] = x
-                labels[cx, cy, C+2] = y
-                labels[cx, cy, C+3] = w
-                labels[cx, cy, C+4] = h
+                if labels[cx, cy, C] == 0:
+                    labels[cx, cy, C] = 1
+                    labels[cx, cy, class_label] = 1
+                    labels[cx, cy, C+1] = x
+                    labels[cx, cy, C+2] = y
+                    labels[cx, cy, C+3] = w
+                    labels[cx, cy, C+4] = h
                 
             return im, labels

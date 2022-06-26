@@ -4,6 +4,7 @@ from torch import nn
 from utils import intersection_over_union
 from params import S, B, C, losses, device
 
+
 class YoloLoss(nn.Module):
     """
     YOLO loss function comparing predicted bounding boxes with actual. Requires B = 2 for the tensor optimizations to work.
@@ -15,13 +16,14 @@ class YoloLoss(nn.Module):
         self.lambda_coord = 5
         self.lambda_noobj = 0.5
 
-    def forward(self, predictions, labels, conf_only=False):
+    def forward(self, predictions, labels):
         """
         Calculates the loss between predicted and actual bounding boxes.
 
         Args:
             predictions: Predicted bounding boxes, has shape (batch_size, S, S, C + B * 5).
-            labels: Actual bounding boxes, has shape (batch_size, S, S, C + 5). Each box contains class probabilities, confidence, x, y, width, height information, in order.
+            labels: Actual bounding boxes, has shape (batch_size, S, S, C + 5). Each box contains class probabilities,
+            confidence, x, y, width, height information, in order.
         
         Returns:
             Loss calculated from differences in x, y, width, height, confidence, and class probabilities.
@@ -29,13 +31,6 @@ class YoloLoss(nn.Module):
 
         pred_box1 = predictions[..., C+1:C+5]
         pred_box2 = predictions[..., C+6:C+10]
-
-        if conf_only:  # ignore predictions, create new ones from ground truth to train confidence loss earlier
-            pred_box1 = labels[..., C+1:C+5].clone()
-            pred_box1 += torch.normal(mean=0, std=0.1, size=pred_box1.size()).to(device)
-            pred_box2 = labels[..., C+1:C+5].clone()
-            pred_box2 += torch.normal(mean=0, std=0.1, size=pred_box2.size()).to(device)
-
         true_box = labels[..., C+1:C+5]
         pred_box1[..., 2:4] *= S
         pred_box2[..., 2:4] *= S
@@ -112,15 +107,12 @@ class YoloLoss(nn.Module):
         noobj_conf_loss *= self.lambda_noobj
         loss = 0
 
-        if conf_only:  # overwrites param setting
-            loss = obj_conf_loss + noobj_conf_loss
-        else:
-            if 'box' in losses:
-                loss += box_loss
-            if 'obj_conf' in losses:
-                loss += obj_conf_loss
-            if 'noobj_conf' in losses:
-                loss += noobj_conf_loss
-            if 'class' in losses:
-                loss += class_loss
+        if 'box' in losses:
+            loss += box_loss
+        if 'obj_conf' in losses:
+            loss += obj_conf_loss
+        if 'noobj_conf' in losses:
+            loss += noobj_conf_loss
+        if 'class' in losses:
+            loss += class_loss
         return loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss

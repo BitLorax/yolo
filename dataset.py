@@ -5,7 +5,7 @@ import os
 from PIL import Image
 import pandas as pd
 
-from params import S, B, C
+from load_config import p
 
 
 class Dataset(TorchDataset):
@@ -42,22 +42,22 @@ class Dataset(TorchDataset):
             if self.transform:
                 im, boxes = self.transform(im, boxes)
             
-            labels = torch.zeros((S, S, C + 5))
+            labels = torch.zeros((p.S, p.S, p.C + 5))
             for box in boxes:
                 class_label, x, y, w, h = box.tolist()
                 class_label = int(class_label)
 
-                cx = int(S * x)
-                cy = int(S * y)
-                x = S * x - cx
-                y = S * y - cy
+                cx = int(p.S * x)
+                cy = int(p.S * y)
+                x = p.S * x - cx
+                y = p.S * y - cy
 
-                if labels[cx, cy, C] == 0:
-                    labels[cx, cy, C] = 1
+                if labels[cx, cy, p.C] == 0:
+                    labels[cx, cy, p.C] = 1
                     labels[cx, cy, class_label] = 1
-                    labels[cx, cy, C+1] = x
-                    labels[cx, cy, C+2] = y
-                    labels[cx, cy, C+3] = w
-                    labels[cx, cy, C+4] = h
+                    labels[cx, cy, p.C+1] = x
+                    labels[cx, cy, p.C+2] = y
+                    labels[cx, cy, p.C+3] = w
+                    labels[cx, cy, p.C+4] = h
                 
             return im, labels

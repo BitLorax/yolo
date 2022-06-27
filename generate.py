@@ -11,14 +11,14 @@ HEIGHT = 448
 SHAPES = [0, 3, 4, 5, 6]
 
 
-def overlaps(boxA, boxB):
-    Aw, Ah = boxA[2:3], boxA[3:4]
-    Bw, Bh = boxB[2:3], boxB[3:4]
+def overlaps(box1, box2):
+    Aw, Ah = box1[2:3], box1[3:4]
+    Bw, Bh = box2[2:3], box2[3:4]
 
-    Ax1, Ay1 = boxA[0:1] - Aw / 2, boxA[1:2] - Ah / 2
-    Bx1, By1 = boxB[0:1] - Bw / 2, boxB[1:2] - Bh / 2
-    Ax2, Ay2 = boxA[0:1] + Aw / 2, boxA[1:2] + Ah / 2
-    Bx2, By2 = boxB[0:1] + Bw / 2, boxB[1:2] + Bh / 2
+    Ax1, Ay1 = box1[0:1] - Aw / 2, box1[1:2] - Ah / 2
+    Bx1, By1 = box2[0:1] - Bw / 2, box2[1:2] - Bh / 2
+    Ax2, Ay2 = box1[0:1] + Aw / 2, box1[1:2] + Ah / 2
+    Bx2, By2 = box2[0:1] + Bw / 2, box2[1:2] + Bh / 2
 
     x1 = np.maximum(Ax1, Bx1)
     y1 = np.maximum(Ay1, By1)
@@ -42,6 +42,7 @@ def generate_shape(data):
     shape = SHAPES[shape_idx]
 
     valid = False
+    x, y, s = None, None, None
     while not valid:
         s = random.randint(int(min(WIDTH, HEIGHT) * 0.1), int(min(WIDTH, HEIGHT) * 0.4))
         x = random.randint(0, WIDTH - s - 1)
@@ -59,7 +60,7 @@ def generate_shape(data):
     else:
         # rotation = random.randint(0, 360)
         rotation = 0
-        r = (int)(s / 2)
+        r = int(s / 2)
         draw.regular_polygon((x + r, y + r, r), shape, rotation=rotation, fill=color)
 
     s = s / WIDTH
@@ -81,29 +82,34 @@ def generate_image():
     return ret, data
 
 
-def generate_dataset(start_idx, end_idx, csv):
+def generate_dataset(image_dir, label_dir, start_idx, end_idx, csv):
     for i in tqdm(range(start_idx, end_idx)):
         im, data = generate_image()
         im = im.convert('RGB')
         filename = str(i).zfill(4)
         im.save(image_dir + '/' + filename + '.png')
         with open(label_dir + '/' + filename + '.txt', 'w') as f:
-            for i in data:
-                f.write(' '.join(map(str, i)))
+            for j in data:
+                f.write(' '.join(map(str, j)))
                 f.write('\n')
         csv.write(filename + '.png,' + filename + '.txt\n')
 
 
-dataset_name = 'shape_outline_norot'
-image_dir = 'dataset/' + dataset_name + '/images'
-label_dir = 'dataset/' + dataset_name + '/labels'
+def main():
+    dataset_name = 'shape_outline_norot'
+    image_dir = 'dataset/' + dataset_name + '/images'
+    label_dir = 'dataset/' + dataset_name + '/labels'
 
-if not os.path.exists(image_dir):
-    os.makedirs(image_dir)
-if not os.path.exists(label_dir):
-    os.makedirs(label_dir)
+    if not os.path.exists(image_dir):
+        os.makedirs(image_dir)
+    if not os.path.exists(label_dir):
+        os.makedirs(label_dir)
 
-with open('dataset/' + dataset_name + '/train.csv', 'w') as csv:
-    generate_dataset(0, 9000, csv)
-with open('dataset/' + dataset_name + '/test.csv', 'w') as csv:
-    generate_dataset(9000, 10000, csv)
+    with open('dataset/' + dataset_name + '/train.csv', 'w') as csv:
+        generate_dataset(image_dir, label_dir, 0, 9000, csv)
+    with open('dataset/' + dataset_name + '/test.csv', 'w') as csv:
+        generate_dataset(image_dir, label_dir, 9000, 10000, csv)
+
+
+if __name__ == '__main__':
+    main()

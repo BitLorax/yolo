@@ -1,86 +1,8 @@
 import torch
 from torch import nn
 
-from params import S, B, C, architecture_size, dropout
-
-if architecture_size == 'full':
-    architecture = [
-        (7, 64, 2, 3),  # size, filters, stride, padding
-        "M",  # Maxpool
-        (3, 192, 1, 1),
-        "M",
-        (1, 128, 1, 0),
-        (3, 256, 1, 1),
-        (1, 256, 1, 0),
-        (3, 512, 1, 1),
-        "M",
-        [(1, 256, 1, 0), (3, 512, 1, 1), 4],  # [..., repeats]
-        (1, 512, 1, 0),
-        (3, 1024, 1, 1),
-        "M",
-        [(1, 512, 1, 0), (3, 1024, 1, 1), 2],
-        (3, 1024, 1, 1),
-        (3, 1024, 2, 1),
-        (3, 1024, 1, 1),
-        (3, 1024, 1, 1)
-    ]
-    dense_size = 4096
-elif architecture_size == 'mini':
-    architecture = [
-        (7, 64, 2, 3),
-        "M",
-        (3, 192, 1, 1),
-        "M",
-        (3, 256, 1, 1),
-        (3, 512, 1, 1),
-        "M",
-        (3, 512, 1, 1),
-        "M",
-        (3, 512, 1, 1),
-        (3, 512, 2, 1),
-        (3, 512, 1, 1),
-        (3, 1024, 1, 1)
-    ]
-    dense_size = 512
-elif architecture_size == 'semi-mini':
-    architecture = [
-        (7, 64, 2, 3),
-        "M",
-        (3, 192, 1, 1),
-        "M",
-        (3, 256, 1, 1),
-        (3, 512, 1, 1),
-        "M",
-        (3, 512, 1, 1),
-        "M",
-        (3, 512, 1, 1),
-        (3, 512, 2, 1),
-        (3, 512, 1, 1),
-        (3, 1024, 1, 1)
-    ]
-    dense_size = 1024
-elif architecture_size == "mini-dense":
-    architecture = [
-        (7, 64, 2, 3),  # size, filters, stride, padding
-        "M",  # Maxpool
-        (3, 192, 1, 1),
-        "M",
-        (1, 128, 1, 0),
-        (3, 256, 1, 1),
-        (1, 256, 1, 0),
-        (3, 512, 1, 1),
-        "M",
-        [(1, 256, 1, 0), (3, 512, 1, 1), 4],  # [..., repeats]
-        (1, 512, 1, 0),
-        (3, 1024, 1, 1),
-        "M",
-        [(1, 512, 1, 0), (3, 1024, 1, 1), 2],
-        (3, 1024, 1, 1),
-        (3, 1024, 2, 1),
-        (3, 1024, 1, 1),
-        (3, 1024, 1, 1)
-    ]
-    dense_size = 512
+from load_config import p
+from architectures import conv_architectures, dense_sizes
 
 
 def init_weights(m):
@@ -94,11 +16,11 @@ class CNNBlock(nn.Module):
     def __init__(self, in_channels, out_channels, **kwargs):
         super(CNNBlock, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, bias=False, **kwargs)
-        self.batchnorm = nn.BatchNorm2d(out_channels)
-        self.leakyrelu = nn.LeakyReLU(0.1)
+        self.batch_norm = nn.BatchNorm2d(out_channels)
+        self.leaky_relu = nn.LeakyReLU(0.1)
     
     def forward(self, x):
-        return self.leakyrelu(self.batchnorm(self.conv(x)))
+        return self.leaky_relu(self.batch_norm(self.conv(x)))
 
 
 class Yolo(nn.Module):
@@ -112,7 +34,8 @@ class Yolo(nn.Module):
 
     def __init__(self, in_channels=3):
         super(Yolo, self).__init__()
-        self.architecture = architecture
+        self.architecture = conv_architectures[p.architecture_size]
+        self.dense_size = dense_sizes[p.architecture_size]
         self.in_channels = in_channels
         self.darknet = self._create_conv_layers()
         self.fcs = self._create_fcs()
@@ -122,14 +45,14 @@ class Yolo(nn.Module):
         x = self.darknet(x)
         x = torch.flatten(x, start_dim=1)
         x = self.fcs(x)
-        x = x.reshape(-1, S, S, C + B * 5)
+        x = x.reshape(-1, p.S, p.S, p.C + p.B * 5)
         return x
     
     def _create_conv_layers(self):
         layers = []
         in_channels = self.in_channels
 
-        for x in architecture:
+        for x in self.architecture:
             if type(x) == tuple:
                 layers.append(CNNBlock(
                     in_channels,
@@ -168,14 +91,13 @@ class Yolo(nn.Module):
         net.apply(init_weights)
         return net
 
-    @staticmethod
-    def _create_fcs():
+    def _create_fcs(self):
         net = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(1024 * S * S, dense_size),
-            nn.Dropout(dropout),
+            nn.Linear(1024 * p.S * p.S, self.dense_size),
+            nn.Dropout(p.dropout),
             nn.LeakyReLU(0.1),
-            nn.Linear(dense_size, S * S * (C + B * 5))
+            nn.Linear(self.dense_size, p.S * p.S * (p.C + p.B * 5))
         )
         net.apply(init_weights)
         return net

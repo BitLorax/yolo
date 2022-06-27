@@ -1,0 +1,38 @@
+---
+# Learning parameters
+epochs: 500
+batch_size: 32
+optimizer:
+  name: adam
+  learning_rate: 1.0e-5
+  momentum: 0.9
+  weight_decay: 0
+
+# Run configuration
+resume_run: false
+resume_run_id: ~
+visualize_preds: false
+save_model_file: model.pth.tar
+load_model_file: ~
+selected_dataset:
+  name: shape_norot
+  train_data_csv: train.csv
+  test_data_csv: test.csv
+
+# Model and loss configuration
+S: 7
+B: 2
+architecture_size: mini_dense
+dropout: 0.5
+losses:
+  - box
+  - class
+  - obj_conf
+  - noobj_conf
+
+# Misc
+num_workers: 2
+pin_memory: true
+device: cuda
+enable_wandb: false
+verbose: false

@@ -7,7 +7,7 @@ import numpy as np
 from dataset import Dataset
 from model import Yolo
 from loss import YoloLoss
-from params import *
+from load_config import *
 
 from utils import predictions_to_bboxes, load_checkpoint, non_max_suppression, plot_image
 

@@ -1,6 +1,5 @@
 import torch
 from torch.utils.data import DataLoader
-import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -8,6 +7,7 @@ import numpy as np
 # from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 # from pytorch_grad_cam.utils.image import show_cam_on_image
 
+from run import get_transform
 from utils import (
     mean_average_precision,
     get_bboxes,
@@ -16,37 +16,20 @@ from utils import (
     predictions_to_bboxes,
     non_max_suppression,
     plot_image,
-    get_losses
+    load_losses
 )
 
 from dataset import Dataset
 from model import Yolo
 from loss import YoloLoss
-from params import *
+from load_config import *
 
 
-class Compose(object):
-    def __init__(self, transforms):
-        self.transforms = transforms
-    
-    def __call__(self, im, bboxes):
-        for t in self.transforms:
-            im, bboxes = t(im), bboxes
-        return im, bboxes
-
-if selected_dataset == 'voc':
-    transform = Compose([transforms.Resize((448, 448)), transforms.ToTensor()])
-elif selected_dataset[0:5] == 'shape':
-    transform = Compose([transforms.ToTensor()])
-else:
-    print('Invalid dataset configuration.')
-
-
-def visualize(dataloader):
+def visualize(model, dataloader):
     for x, _ in dataloader:
-        x = x.to(device)
+        x = x.to(p.device)
         pred_batch_boxes = predictions_to_bboxes(model(x))
-        for i in range(batch_size):
+        for i in range(p.batch_size):
             pred_img_boxes = pred_batch_boxes[i, :].reshape(-1, 6)
             pred_img_boxes = non_max_suppression(pred_img_boxes, iou_threshold=0.5, conf_threshold=0.4)
             pred_img_boxes = [box.tolist() for box in pred_img_boxes]
@@ -54,11 +37,13 @@ def visualize(dataloader):
             plot_image(x[i].permute(1, 2, 0).to('cpu'), pred_img_boxes)
 
 
-def plot_class_heatmap(dataloader, n):
+def plot_class_heatmap(model, dataloader, n):
     """
-    Plots pre-NMS class heatmap, displaying which cells in the grid have higher confidence and probabilities for each class.
+    Plots pre-NMS class heatmap, displaying which cells in the grid have higher confidence and probabilities for
+    each class.
 
     Args:
+        model: Pytorch YOLO model.
         dataloader: Pytorch dataloader used to train model.
         n: Number of images to analyze.
     """
@@ -70,7 +55,7 @@ def plot_class_heatmap(dataloader, n):
         x = x[0:1, ...]
         y = y[0:1, ...]
         bboxes = []
-        x, y = x.to(device), y.to(device)
+        x, y = x.to(p.device), y.to(p.device)
         with torch.no_grad():
             out = model(x)
 
@@ -81,69 +66,66 @@ def plot_class_heatmap(dataloader, n):
         for box in pred_img_boxes:
             bboxes.append(box.tolist())
 
-        for c in range(C):
-            heatmap = np.zeros((S, S))
-            for box in bboxes:
-                if box[1] == c:
-                    sx = (int)((box[2] + box[4] / 2) * S)
-                    sy = (int)((box[3] + box[5] / 2) * S)
-                    if sx >= 0 and sx < S and sy >= 0 and sy < S:
-                        heatmap[sx, sy] += box[0]
-            axs[2 * i, c].imshow(heatmap, cmap='binary')
-            axs[2 * i, c].axis('off')
-        
         bboxes = non_max_suppression(pred_img_boxes, iou_threshold=0.5, conf_threshold=0.4)
-        for c in range(C):
-            heatmap = np.zeros((S, S))
-            for box in bboxes:
-                if box[1] == c:
-                    sx = (int)((box[2] + box[4] / 2) * S)
-                    sy = (int)((box[3] + box[5] / 2) * S)
-                    if sx >= 0 and sx < S and sy >= 0 and sy < S:
-                        heatmap[sx, sy] += box[0]
-            axs[2 * i + 1, c].imshow(heatmap, cmap='binary')
-            axs[2 * i + 1, c].axis('off')
+        bboxes_to_heatmap(bboxes, axs, i)
 
-        axs[2 * i, C].imshow(img)
-        axs[2 * i, C].axis('off')
-        axs[2 * i + 1, C].axis('off')
+        axs[2 * i, p.C].imshow(img)
+        axs[2 * i, p.C].axis('off')
+        axs[2 * i + 1, p.C].axis('off')
     
     fig.tight_layout()
     plt.show()
 
 
-if __name__ == '__main__':
-    print(f'Running on dataset: {selected_dataset}')
-    print(f'Load file: {load_model_file}')
-    print(f'Data from: {test_data_csv}')
+def bboxes_to_heatmap(bboxes, axs, i):
+    for c in range(p.C):
+        heatmap = np.zeros((p.S, p.S))
+        for box in bboxes:
+            if box[1] == c:
+                sx = int((box[2] + box[4] / 2) * p.S)
+                sy = int((box[3] + box[5] / 2) * p.S)
+                if 0 <= sx < p.S and 0 <= sy < p.S:
+                    heatmap[sx, sy] += box[0]
+        axs[2 * i + 1, c].imshow(heatmap, cmap='binary')
+        axs[2 * i + 1, c].axis('off')
+
+
+def main():
+    print(f'Running on dataset: {p.selected_dataset.name}')
+    print(f'Load file: {p.load_model_file}')
+    print(f'Data from: {p.test_data_csv}')
+
+    transform = get_transform()
 
     dataset = Dataset(
-        selected_dataset,
-        test_data_csv,
+        p.selected_dataset.name,
+        p.selected_dataset.test_data_csv,
         transform=transform,
     )
     dataloader = DataLoader(
         dataset=dataset,
-        batch_size=batch_size,
-        num_workers=num_workers,
-        pin_memory=pin_memory,
+        batch_size=p.batch_size,
+        num_workers=p.num_workers,
+        pin_memory=p.pin_memory,
         shuffle=True,
         drop_last=True
     )
 
     print('Created datasets and dataloaders.')
 
-    model = Yolo().to(device)
-    if optimizer == 'adam':
-        optim = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-    elif optimizer == 'sgd':
-        optim = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum, weight_decay=weight_decay)
+    model = Yolo().to(p.device)
+    if p.optimizer == 'adam':
+        optim = torch.optim.Adam(model.parameters(), lr=p.optimizer.learning_rate,
+                                 weight_decay=p.optimizer.weight_decay)
+    elif p.optimizer.name == 'sgd':
+        optim = torch.optim.SGD(model.parameters(), lr=p.optimizer.learning_rate, momentum=p.optimizer.momentum,
+                                weight_decay=p.optimizer.weight_decay)
     else:
         print('Invalid optimizer.')
         optim = None
     loss_fn = YoloLoss()
 
-    load_checkpoint(torch.load(load_model_filepath, map_location=torch.device(device)), model, optim)
+    load_checkpoint(torch.load(p.load_model_filepath, map_location=torch.device(p.device)), model, optim)
 
     # Save predictions
     save_predictions(dataloader, model, loss_fn)
@@ -152,7 +134,7 @@ if __name__ == '__main__':
     conf_threshold = 0.1
     while conf_threshold <= 0.5:
         print(conf_threshold)
-        mean_loss = get_losses()[0]
+        mean_loss = load_losses()[0]
         pred_boxes, target_boxes = get_bboxes(
             model, iou_threshold=0.5, conf_threshold=conf_threshold
         )
@@ -170,10 +152,10 @@ if __name__ == '__main__':
         conf_threshold += 0.05
 
     # Visualize predictions
-    # visualize(dataloader)
+    # visualize(model, dataloader)
 
     # Visualize class heatmap
-    # plot_class_heatmap(dataloader, 3)
+    # plot_class_heatmap(model, dataloader, 3)
 
     # Visualize Grad-CAM (NOT WORKING)
     # for name, layer in model.named_modules():
@@ -188,3 +170,7 @@ if __name__ == '__main__':
     # grayscale_cam = cam(input_tensor=x)
     # grayscale_cam = grayscale_cam[0, :]
     # vis = show_cam_on_image(x[0], grayscale_cam, use_rgb=True)
+
+
+if __name__ == '__main__':
+    main()

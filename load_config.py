@@ -17,7 +17,7 @@ with open('config.yml', 'r') as stream:
             params['save_model_filepath'] = 'saves/' + params['save_model_file']
             params['predictions_filepath'] = params['save_model_filepath'].split('.')[0] + '_predictions.npz'
         if params['load_model_file'] is not None:
-            params['load_model_filepath'] = '../input/yolo_checkpoints/' + params['load_model_file']
+            params['load_model_filepath'] = '../input/yolo-checkpoints/' + params['load_model_file']
         if params['selected_dataset']['name'] == 'voc':
             params['C'] = 20
         elif params['selected_dataset']['name'][0:5] == 'shape':

@@ -1,6 +1,6 @@
 ---
 # Learning parameters
-epochs: 500
+epochs: 250
 batch_size: 32
 optimizer:
   name: adam
@@ -34,5 +34,5 @@ losses:
 num_workers: 2
 pin_memory: true
 device: cuda
-enable_wandb: false
+enable_wandb: true
 verbose: false

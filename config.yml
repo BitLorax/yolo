@@ -9,11 +9,11 @@ optimizer:
   weight_decay: 0
 
 # Run configuration
-resume_run: false
+resume_run: true
 resume_run_id: ~
 visualize_preds: false
 save_model_file: model.pth.tar
-load_model_file: ~
+load_model_file: model.pth.tar
 selected_dataset:
   name: shape_norot
   train_data_csv: train.csv

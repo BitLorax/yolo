@@ -94,13 +94,13 @@ class YoloLoss(nn.Module):
         #     torch.flatten(noobj_labels, end_dim=-2)
         # )
         noobj_predictions = predictions[..., p.C:p.C+1] * best_box
-        noobj_labels = iou1 * best_box
+        noobj_labels = 0.0 * best_box
         noobj_conf_loss += self.mse(
             torch.flatten(noobj_predictions, end_dim=-2),
             torch.flatten(noobj_labels, end_dim=-2)
         )
         noobj_predictions = predictions[..., p.C+5:p.C+6] * (1 - best_box)
-        noobj_labels = iou2 * (1 - best_box)
+        noobj_labels = 0.0 * (1 - best_box)
         noobj_conf_loss += self.mse(
             torch.flatten(noobj_predictions, end_dim=-2),
             torch.flatten(noobj_labels, end_dim=-2)

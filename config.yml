@@ -1,6 +1,6 @@
 ---
 # Learning parameters
-epochs: 250
+epochs: 100
 batch_size: 32
 optimizer:
   name: adam

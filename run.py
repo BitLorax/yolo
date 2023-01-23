@@ -19,7 +19,7 @@ from utils import (
 from dataset import Dataset
 from model import Yolo
 from loss import YoloLoss
-from load_config import p
+from config import epochs, batch_size, optimizer, learning_rate, momentum, weight_decay, resume_run, resume_run_id, save_model_file, load_model_file, num_workers, pin_memory, device, enable_wandb
 
 import wandb
 
@@ -35,24 +35,15 @@ class Compose(object):
 
 
 def get_transform():
-    if p.selected_dataset.name == 'voc':
-        return Compose([transforms.Resize((448, 448)), transforms.ToTensor()])
-    elif p.selected_dataset.name[0:5] == 'shape':
-        return Compose([transforms.ToTensor()])
-    else:
-        print('Invalid dataset configuration.')
-        return None
+    return Compose([transforms.ToTensor()])
 
 
 def train(dataloader, model, optim, loss_fn):
-    if p.verbose:
-        loop = tqdm(dataloader, leave=True)
-    else:
-        loop = dataloader
+    loop = tqdm(dataloader, leave=True)
     losses = Losses()
 
     for _, (x, y) in enumerate(loop):
-        x, y = x.to(p.device), y.to(p.device)
+        x, y = x.to(device), y.to(device)
         out = model(x)
         loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss_fn(out, y)
         losses.append(loss.item(), box_loss.item(), obj_conf_loss.item(), noobj_conf_loss.item(), class_loss.item())
@@ -85,84 +76,83 @@ def test(dataloader, model, loss_fn):
 
 
 def main():
-    print(f'Running on dataset: %s' % p.selected_dataset.name)
-    print(f'Save file: %s' % p.save_model_file)
-    print(f'Epochs: %d' % p.epochs)
-    if p.resume_run:
+    print(f'Save file: %s' % save_model_file)
+    print(f'Epochs: %d' % epochs)
+    if resume_run:
         print('Resuming previous run. ')
-        print(f'Load file: %s' % p.load_model_file)
+        print(f'Load file: %s' % load_model_file)
     print()
 
     config = {
-        'learning_rate': p.optimizer.learning_rate,
-        'epochs': p.epochs,
-        'batch_size': p.batch_size,
-        'weight_decay': p.optimizer.weight_decay,
-        'optimizer': p.optimizer.name
+        'epochs': epochs,
+        'batch_size': batch_size,
+        'optimizer': optimizer,
+        'learning_rate': learning_rate,
+        'weight_decay': weight_decay
     }
-    if p.optimizer.name == 'sgd':
-        config['momentum'] = p.optimizer.momentum
+    if optimizer == 'sgd':
+        config['momentum'] = momentum
 
     transform = get_transform()
     train_dataset = Dataset(
-        p.selected_dataset.name,
-        p.selected_dataset.train_data_csv,
+        'shape', 'train.csv',
         transform=transform,
     )
     test_dataset = Dataset(
-        p.selected_dataset.name,
-        p.selected_dataset.test_data_csv,
+        'shape', 'test.csv',
         transform=transform,
     )
     train_dataloader = DataLoader(
         dataset=train_dataset,
-        batch_size=p.batch_size,
-        num_workers=p.num_workers,
-        pin_memory=p.pin_memory,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
         shuffle=True,
         drop_last=True
     )
     test_dataloader = DataLoader(
         dataset=test_dataset,
-        batch_size=p.batch_size,
-        num_workers=p.num_workers,
-        pin_memory=p.pin_memory,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
         shuffle=True,
         drop_last=True
     )
 
-    if p.verbose:
-        print('Created datasets and dataloaders.')
+    print('Created datasets and dataloaders.')
 
-    model = Yolo().to(p.device)
-    if p.optimizer.name == 'adam':
-        optim = torch.optim.Adam(model.parameters(), lr=p.optimizer.learning_rate,
-                                 weight_decay=p.optimizer.weight_decay)
-    elif p.optimizer.name == 'sgd':
-        optim = torch.optim.SGD(model.parameters(), lr=p.optimizer.learning_rate, momentum=p.optimizer.momentum,
-                                weight_decay=p.optimizer.weight_decay)
+    model = Yolo().to(device)
+    if optimizer == 'adam':
+        optim = torch.optim.Adam(model.parameters(), lr=learning_rate,
+                                 weight_decay=weight_decay)
+    elif optimizer == 'sgd':
+        optim = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum,
+                                weight_decay=weight_decay)
     else:
-        print('Invalid optimizer.')
-        optim = None
+        print('ERROR: Invalid optimizer.')
+        return
     loss_fn = YoloLoss()
 
-    if p.verbose:
-        print('Created model, optimizer, and loss function.')
+    print('Created model, optimizer, and loss function.')
 
-    if p.enable_wandb:
-        if p.resume_run and p.resume_run_id is not None:
-            wandb.init(project='yolo', entity='willjhliang', config=config, id=p.resume_run_id, resume='must')
+    if enable_wandb:
+        if resume_run and resume_run_id is not None:
+            if resume_run_id is None:
+                print('ERROR: Resume run enabled by ID is not specified.')
+                return
+            else:
+                wandb.init(project='yolo', entity='willjhliang', config=config, id=resume_run_id, resume='must')
         else:
             wandb.init(project='yolo', entity='willjhliang', config=config)
         wandb.watch(model, log_freq=10*len(train_dataloader))
 
-    if p.resume_run:
-        load_checkpoint(torch.load(p.load_model_filepath), model, optim)
+    if resume_run:
+        load_checkpoint(torch.load(load_model_file), model, optim)
 
     if not os.path.exists('saves'):
         os.makedirs('saves')
 
-    for epoch in range(p.epochs):
+    for epoch in range(epochs):
         print(f'Epoch: {epoch}')
 
         loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = train(train_dataloader, model, optim, loss_fn)
@@ -173,7 +163,7 @@ def main():
         print(f'Training loss: {loss}')
         print(f'Validation loss: {val_loss}')
         print(f'Max mAP: {max_mAP}')
-        if p.enable_wandb:
+        if enable_wandb:
             log = {
                 "loss": loss,
                 "box_loss": box_loss,
@@ -194,9 +184,9 @@ def main():
             'state_dict': model.state_dict(),
             'optimizer': optim.state_dict()
         }
-        save_checkpoint(checkpoint, filename=p.save_model_filepath)
+        save_checkpoint(checkpoint, filename=save_model_file)
         if os.path.isdir('drive/MyDrive/'):
-            shutil.copy(p.save_model_filepath, 'drive/MyDrive/model.pth.tar')
+            shutil.copy(save_model_file, 'drive/MyDrive/model.pth.tar')
 
 
 if __name__ == '__main__':

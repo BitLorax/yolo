@@ -7,9 +7,9 @@ import numpy as np
 from dataset import Dataset
 from model import Yolo
 from loss import YoloLoss
-from load_config import *
-
 from utils import predictions_to_bboxes, load_checkpoint, non_max_suppression, plot_image
+
+from config import batch_size, optimizer, learning_rate, momentum, weight_decay, resume_run, load_model_file, num_workers, pin_memory, device
 
 
 def test_predictions_to_bboxes():
@@ -215,17 +215,11 @@ def test_loss_sample_data():
     loss_fn = YoloLoss()
 
     if resume_run:
-        load_checkpoint(torch.load(load_model_filepath, map_location=torch.device('cpu')), model, optim)
+        load_checkpoint(torch.load(load_model_file, map_location=torch.device('cpu')), model, optim)
 
-    if selected_dataset == 'voc':
-        transform = Compose([transforms.Resize((448, 448)), transforms.ToTensor()])
-    elif selected_dataset[0:5] == 'shape':
-        transform = Compose([transforms.ToTensor()])
-    else:
-        print('Invalid dataset configuration.')
+    transform = Compose([transforms.ToTensor()])
     dataset = Dataset(
-        selected_dataset,
-        train_data_csv,
+        'shape', 'train.csv',
         transform=transform,
     )
     dataloader = DataLoader(
@@ -249,13 +243,6 @@ def test_loss_sample_data():
     print(class_loss.item())
 
     
-    # pred_boxes = predictions_to_bboxes(out)
-    # pred_boxes = pred_boxes[0, :].reshape(-1, 6)
-    # pred_boxes = non_max_suppression(pred_boxes, iou_threshold=0.5, conf_threshold=0.4)
-    # pred_boxes = [box.tolist() for box in pred_boxes]
-    # plot_image(x[0].permute(1, 2, 0).to('cpu'), pred_boxes)
-
-
 if __name__ == '__main__':
     torch.manual_seed(0)
     np.random.seed(0)

@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 from utils import intersection_over_union
-from load_config import p
+from config import S, C, losses
 
 
 class YoloLoss(nn.Module):
@@ -30,12 +30,12 @@ class YoloLoss(nn.Module):
             Loss calculated from differences in x, y, width, height, confidence, and class probabilities.
         """
 
-        pred_box1 = predictions[..., p.C+1:p.C+5]
-        pred_box2 = predictions[..., p.C+6:p.C+10]
-        true_box = labels[..., p.C+1:p.C+5]
-        pred_box1[..., 2:4] *= p.S
-        pred_box2[..., 2:4] *= p.S
-        true_box[..., 2:4] *= p.S
+        pred_box1 = predictions[..., C+1:C+5]
+        pred_box2 = predictions[..., C+6:C+10]
+        true_box = labels[..., C+1:C+5]
+        pred_box1[..., 2:4] *= S
+        pred_box2[..., 2:4] *= S
+        true_box[..., 2:4] *= S
         iou1 = intersection_over_union(
             pred_box1, true_box
         )
@@ -43,18 +43,18 @@ class YoloLoss(nn.Module):
             pred_box2, true_box
         )
 
-        pred_box1[..., 2:4] /= p.S
-        pred_box2[..., 2:4] /= p.S
-        true_box[..., 2:4] /= p.S
+        pred_box1[..., 2:4] /= S
+        pred_box2[..., 2:4] /= S
+        true_box[..., 2:4] /= S
         _, best_box = torch.max(torch.cat([iou1.unsqueeze(0), iou2.unsqueeze(0)], dim=0), dim=0)
-        exists_obj = labels[..., p.C].unsqueeze(-1)
+        exists_obj = labels[..., C].unsqueeze(-1)
 
         # Box loss
         obj_predictions = exists_obj * (
-            best_box * predictions[..., p.C+6:p.C+10] +
-            (1 - best_box) * predictions[..., p.C+1:p.C+5]
+            best_box * predictions[..., C+6:C+10] +
+            (1 - best_box) * predictions[..., C+1:C+5]
         )
-        obj_labels = exists_obj * labels[..., p.C+1:p.C+5]
+        obj_labels = exists_obj * labels[..., C+1:C+5]
 
         obj_predictions[..., 2:4] = exists_obj * torch.sign(obj_predictions[..., 2:4]) * \
             torch.sqrt(torch.abs(obj_predictions[..., 2:4] + 1e-6))
@@ -67,8 +67,8 @@ class YoloLoss(nn.Module):
 
         # Confidence loss
         obj_predictions = exists_obj * (
-            best_box * predictions[..., p.C+5:p.C+6] +
-            (1 - best_box) * predictions[..., p.C:p.C+1]
+            best_box * predictions[..., C+5:C+6] +
+            (1 - best_box) * predictions[..., C:C+1]
         )
         obj_labels = exists_obj * (
             best_box * iou2 +
@@ -81,34 +81,22 @@ class YoloLoss(nn.Module):
         )
 
         noobj_conf_loss = 0
-        # noobj_predictions = (1 - exists_obj) * predictions[..., p.C:p.C+1]
-        # noobj_labels = (1 - exists_obj) * iou1
-        # noobj_conf_loss += self.mse(
-        #     torch.flatten(noobj_predictions, end_dim=-2),
-        #     torch.flatten(noobj_labels, end_dim=-2)
-        # )
-        # noobj_predictions = (1 - exists_obj) * predictions[..., p.C+5:p.C+6]
-        # noobj_labels = (1 - exists_obj) * iou2
-        # noobj_conf_loss += self.mse(
-        #     torch.flatten(noobj_predictions, end_dim=-2),
-        #     torch.flatten(noobj_labels, end_dim=-2)
-        # )
-        noobj_predictions = predictions[..., p.C:p.C+1] * best_box
-        noobj_labels = 0.0 * best_box
+        noobj_predictions = (1 - exists_obj) * predictions[..., C:C+1]
+        noobj_labels = (1 - exists_obj) * iou1
         noobj_conf_loss += self.mse(
             torch.flatten(noobj_predictions, end_dim=-2),
             torch.flatten(noobj_labels, end_dim=-2)
         )
-        noobj_predictions = predictions[..., p.C+5:p.C+6] * (1 - best_box)
-        noobj_labels = 0.0 * (1 - best_box)
+        noobj_predictions = (1 - exists_obj) * predictions[..., C+5:C+6]
+        noobj_labels = (1 - exists_obj) * iou2
         noobj_conf_loss += self.mse(
             torch.flatten(noobj_predictions, end_dim=-2),
             torch.flatten(noobj_labels, end_dim=-2)
         )
 
         # Class loss
-        obj_predictions = exists_obj * predictions[..., :p.C]
-        obj_labels = exists_obj * labels[..., :p.C]
+        obj_predictions = exists_obj * predictions[..., :C]
+        obj_labels = exists_obj * labels[..., :C]
         class_loss = self.mse(
             torch.flatten(obj_predictions, end_dim=-2),
             torch.flatten(obj_labels, end_dim=-2)
@@ -119,13 +107,13 @@ class YoloLoss(nn.Module):
         noobj_conf_loss *= self.lambda_noobj
         loss = 0
 
-        if 'box' in p.losses:
+        if 'box' in losses:
             loss += box_loss
-        if 'obj_conf' in p.losses:
+        if 'obj_conf' in losses:
             loss += obj_conf_loss
-        if 'noobj_conf' in p.losses:
+        if 'noobj_conf' in losses:
             loss += noobj_conf_loss
-        if 'class' in p.losses:
+        if 'class' in losses:
             loss += class_loss
         return loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss
 

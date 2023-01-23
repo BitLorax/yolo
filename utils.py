@@ -4,8 +4,7 @@ from PIL import Image, ImageDraw
 import matplotlib.pyplot as plt
 from os.path import exists
 
-from load_config import p
-
+from config import S, B, C, save_preds_file, load_preds_file, device
 
 class Losses:
     """
@@ -119,7 +118,7 @@ def mean_average_precision(pred_boxes, true_boxes, iou_threshold=0.5, plot_curve
     """
 
     average_precisions = []
-    for c in range(p.C if use_class else 1):
+    for c in range(C if use_class else 1):
         pred_class_boxes = []
         true_class_boxes = []
 
@@ -284,16 +283,16 @@ def predictions_to_bboxes(predictions):
     predictions = predictions.to('cpu')
 
     batch_size = predictions.shape[0]
-    ret = torch.empty((batch_size, p.S, p.S, p.B, 6))
-    for cx in range(p.S):
-        for cy in range(p.S):
+    ret = torch.empty((batch_size, S, S, B, 6))
+    for cx in range(S):
+        for cy in range(S):
             cell = predictions[:, cx, cy, :]
-            for i in range(p.B):
-                idx_offset = p.C + 5 * i
-                pred_class = torch.argmax(cell[:, :p.C], dim=1).unsqueeze(-1)
+            for i in range(B):
+                idx_offset = C + 5 * i
+                pred_class = torch.argmax(cell[:, :C], dim=1).unsqueeze(-1)
                 conf = cell[:, idx_offset].unsqueeze(-1)
-                x = 1 / p.S * (cell[:, idx_offset+1].unsqueeze(-1) + cx)
-                y = 1 / p.S * (cell[:, idx_offset+2].unsqueeze(-1) + cy)
+                x = 1 / S * (cell[:, idx_offset+1].unsqueeze(-1) + cx)
+                y = 1 / S * (cell[:, idx_offset+2].unsqueeze(-1) + cy)
                 w = cell[:, idx_offset+3].unsqueeze(-1)
                 h = cell[:, idx_offset+4].unsqueeze(-1)
 
@@ -320,16 +319,16 @@ def labels_to_bboxes(labels):
     labels = labels.to('cpu')
 
     batch_size = labels.shape[0]
-    ret = torch.empty((batch_size, p.S, p.S, 6))
-    for cx in range(p.S):
-        for cy in range(p.S):
+    ret = torch.empty((batch_size, S, S, 6))
+    for cx in range(S):
+        for cy in range(S):
             cell = labels[:, cx, cy, :]
-            pred_class = torch.argmax(cell[:, :p.C], dim=1).unsqueeze(-1)
-            conf = cell[:, p.C].unsqueeze(-1)
-            x = 1 / p.S * (cell[:, p.C+1].unsqueeze(-1) + cx) * conf
-            y = 1 / p.S * (cell[:,  p.C+2].unsqueeze(-1) + cy) * conf
-            w = cell[:, p.C+3].unsqueeze(-1)
-            h = cell[:, p.C+4].unsqueeze(-1)
+            pred_class = torch.argmax(cell[:, :C], dim=1).unsqueeze(-1)
+            conf = cell[:, C].unsqueeze(-1)
+            x = 1 / S * (cell[:, C+1].unsqueeze(-1) + cx) * conf
+            y = 1 / S * (cell[:, C+2].unsqueeze(-1) + cy) * conf
+            w = cell[:, C+3].unsqueeze(-1)
+            h = cell[:, C+4].unsqueeze(-1)
 
             box = torch.cat((conf, pred_class, x, y, w, h), dim=-1)
             ret[:, cx, cy, :] = box
@@ -364,10 +363,10 @@ def save_predictions(dataloader, model, loss_fn):
 
     model.eval()
     losses = Losses()
-    predictions = torch.empty(0).to(p.device)
-    labels = torch.empty(0).to(p.device)
+    predictions = torch.empty(0).to(device)
+    labels = torch.empty(0).to(device)
     for _, (x, y) in enumerate(dataloader):
-        x, y = x.to(p.device), y.to(p.device)
+        x, y = x.to(device), y.to(device)
         with torch.no_grad():
             out = model(x)
         loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss_fn(out, y)
@@ -380,15 +379,14 @@ def save_predictions(dataloader, model, loss_fn):
     predictions = predictions.cpu().numpy()
     labels = labels.cpu().numpy()
 
-    np.savez(p.predictions_filepath, predictions=predictions, losses=losses, labels=labels)
+    np.savez(save_preds_file, predictions=predictions, losses=losses, labels=labels)
     model.train()
-    if p.verbose:
-        print('Saved predictions, losses, and labels in %s.' % p.predictions_filepath)
+    print('Saved predictions, losses, and labels in %s.' % save_preds_file)
 
 
 def load_predictions():
-    if not exists(p.predictions_filepath):
+    if not exists(load_preds_file):
         print('ERROR: Missing predictions save file. Run save_predictions(loader, model, loss_fn) first.')
         return
-    data = np.load(p.predictions_filepath)
+    data = np.load(load_preds_file)
     return data['predictions'], data['labels'], data['losses']

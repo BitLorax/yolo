@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from load_config import p
+from config import S, B, C, architecture_size, dropout
 from architectures import conv_architectures, dense_sizes
 
 
@@ -34,8 +34,8 @@ class Yolo(nn.Module):
 
     def __init__(self, in_channels=3):
         super(Yolo, self).__init__()
-        self.architecture = conv_architectures[p.architecture_size]
-        self.dense_size = dense_sizes[p.architecture_size]
+        self.architecture = conv_architectures[architecture_size]
+        self.dense_size = dense_sizes[architecture_size]
         self.in_channels = in_channels
         self.darknet = self._create_conv_layers()
         self.fcs = self._create_fcs()
@@ -45,7 +45,7 @@ class Yolo(nn.Module):
         x = self.darknet(x)
         x = torch.flatten(x, start_dim=1)
         x = self.fcs(x)
-        x = x.reshape(-1, p.S, p.S, p.C + p.B * 5)
+        x = x.reshape(-1, S, S, C + B * 5)
         return x
     
     def _create_conv_layers(self):
@@ -94,10 +94,10 @@ class Yolo(nn.Module):
     def _create_fcs(self):
         net = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(1024 * p.S * p.S, self.dense_size),
-            nn.Dropout(p.dropout),
+            nn.Linear(1024 * S * S, self.dense_size),
+            nn.Dropout(dropout),
             nn.LeakyReLU(0.1),
-            nn.Linear(self.dense_size, p.S * p.S * (p.C + p.B * 5))
+            nn.Linear(self.dense_size, S * S * (C + B * 5))
         )
         net.apply(init_weights)
         return net

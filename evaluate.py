@@ -3,10 +3,6 @@ from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 import numpy as np
 
-# from pytorch_grad_cam import EigenCAM
-# from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
-# from pytorch_grad_cam.utils.image import show_cam_on_image
-
 from run import get_transform
 from utils import (
     mean_average_precision,
@@ -22,14 +18,14 @@ from utils import (
 from dataset import Dataset
 from model import Yolo
 from loss import YoloLoss
-from load_config import *
+from config import S, C, optimizer, device, load_model_file, batch_size, num_workers, pin_memory
 
 
 def visualize(model, dataloader):
     for x, _ in dataloader:
-        x = x.to(p.device)
+        x = x.to(device)
         pred_batch_boxes = predictions_to_bboxes(model(x))
-        for i in range(p.batch_size):
+        for i in range(batch_size):
             pred_img_boxes = pred_batch_boxes[i, :].reshape(-1, 6)
             pred_img_boxes = non_max_suppression(pred_img_boxes, iou_threshold=0.5, conf_threshold=0.4)
             pred_img_boxes = [box.tolist() for box in pred_img_boxes]
@@ -55,7 +51,7 @@ def plot_class_heatmap(model, dataloader, n):
         x = x[0:1, ...]
         y = y[0:1, ...]
         bboxes = []
-        x, y = x.to(p.device), y.to(p.device)
+        x, y = x.to(device), y.to(device)
         with torch.no_grad():
             out = model(x)
 
@@ -69,63 +65,60 @@ def plot_class_heatmap(model, dataloader, n):
         bboxes = non_max_suppression(pred_img_boxes, iou_threshold=0.5, conf_threshold=0.4)
         bboxes_to_heatmap(bboxes, axs, i)
 
-        axs[2 * i, p.C].imshow(img)
-        axs[2 * i, p.C].axis('off')
-        axs[2 * i + 1, p.C].axis('off')
+        axs[2 * i, C].imshow(img)
+        axs[2 * i, C].axis('off')
+        axs[2 * i + 1, C].axis('off')
     
     fig.tight_layout()
     plt.show()
 
 
 def bboxes_to_heatmap(bboxes, axs, i):
-    for c in range(p.C):
-        heatmap = np.zeros((p.S, p.S))
+    for c in range(C):
+        heatmap = np.zeros((S, S))
         for box in bboxes:
             if box[1] == c:
-                sx = int((box[2] + box[4] / 2) * p.S)
-                sy = int((box[3] + box[5] / 2) * p.S)
-                if 0 <= sx < p.S and 0 <= sy < p.S:
+                sx = int((box[2] + box[4] / 2) * S)
+                sy = int((box[3] + box[5] / 2) * S)
+                if 0 <= sx < S and 0 <= sy < S:
                     heatmap[sx, sy] += box[0]
         axs[2 * i + 1, c].imshow(heatmap, cmap='binary')
         axs[2 * i + 1, c].axis('off')
 
 
 def main():
-    print(f'Running on dataset: {p.selected_dataset.name}')
-    print(f'Load file: {p.load_model_file}')
-    print(f'Data from: {p.test_data_csv}')
+    print(f'Load file: {load_model_file}')
 
     transform = get_transform()
 
     dataset = Dataset(
-        p.selected_dataset.name,
-        p.selected_dataset.test_data_csv,
+        'shape', 'test.csv',
         transform=transform,
     )
     dataloader = DataLoader(
         dataset=dataset,
-        batch_size=p.batch_size,
-        num_workers=p.num_workers,
-        pin_memory=p.pin_memory,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
         shuffle=True,
         drop_last=True
     )
 
     print('Created datasets and dataloaders.')
 
-    model = Yolo().to(p.device)
-    if p.optimizer == 'adam':
-        optim = torch.optim.Adam(model.parameters(), lr=p.optimizer.learning_rate,
-                                 weight_decay=p.optimizer.weight_decay)
-    elif p.optimizer.name == 'sgd':
-        optim = torch.optim.SGD(model.parameters(), lr=p.optimizer.learning_rate, momentum=p.optimizer.momentum,
-                                weight_decay=p.optimizer.weight_decay)
+    model = Yolo().to(device)
+    if optimizer['name'] == 'adam':
+        optim = torch.optim.Adam(model.parameters(), lr=optimizer['learning_rate'],
+                                 weight_decay=optimizer['weight_decay'])
+    elif optimizer['name'] == 'sgd':
+        optim = torch.optim.SGD(model.parameters(), lr=optimizer['learning_rate'], momentum=optimizer['momentum'],
+                                weight_decay=optimizer['weight_decay'])
     else:
         print('Invalid optimizer.')
         optim = None
     loss_fn = YoloLoss()
 
-    load_checkpoint(torch.load(p.load_model_filepath, map_location=torch.device(p.device)), model, optim)
+    load_checkpoint(torch.load(load_model_file, map_location=torch.device(device)), model, optim)
 
     # Save predictions
     save_predictions(dataloader, model, loss_fn)
@@ -156,21 +149,6 @@ def main():
 
     # Visualize class heatmap
     # plot_class_heatmap(model, dataloader, 3)
-
-    # Visualize Grad-CAM (NOT WORKING)
-    # for name, layer in model.named_modules():
-    #     print(name, layer)
-    # target_layers = [model.darknet]
-    # cam = EigenCAM(model, target_layers=target_layers, use_cuda=False)
-
-    # x, y = next(iter(dataloader))
-    # x = x[0:1, ...]
-    # y = y[0:1, ...]
-
-    # grayscale_cam = cam(input_tensor=x)
-    # grayscale_cam = grayscale_cam[0, :]
-    # vis = show_cam_on_image(x[0], grayscale_cam, use_rgb=True)
-
 
 if __name__ == '__main__':
     main()

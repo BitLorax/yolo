@@ -51,8 +51,8 @@ class YoloLoss(nn.Module):
 
         # Box loss
         obj_predictions = exists_obj * (
-            best_box * predictions[..., C+6:C+10] +
-            (1 - best_box) * predictions[..., C+1:C+5]
+            (1 - best_box) * predictions[..., C+1:C+5] +
+            best_box * predictions[..., C+6:C+10]
         )
         obj_labels = exists_obj * labels[..., C+1:C+5]
 
@@ -67,12 +67,12 @@ class YoloLoss(nn.Module):
 
         # Confidence loss
         obj_predictions = exists_obj * (
-            best_box * predictions[..., C+5:C+6] +
-            (1 - best_box) * predictions[..., C:C+1]
+            (1 - best_box) * predictions[..., C:C+1] +
+            best_box * predictions[..., C+5:C+6]
         )
         obj_labels = exists_obj * (
-            best_box * iou2 +
-            (1 - best_box) * iou1
+            (1 - best_box) * iou1 +
+            best_box * iou2
         )
 
         obj_conf_loss = self.mse(
@@ -81,14 +81,14 @@ class YoloLoss(nn.Module):
         )
 
         noobj_conf_loss = 0
-        noobj_predictions = (1 - exists_obj) * predictions[..., C:C+1]
-        noobj_labels = (1 - exists_obj) * iou1
+        noobj_predictions = ((1 - exists_obj) + exists_obj * best_box) * predictions[..., C:C+1]
+        noobj_labels = ((1 - exists_obj) + exists_obj * best_box) * iou1
         noobj_conf_loss += self.mse(
             torch.flatten(noobj_predictions, end_dim=-2),
             torch.flatten(noobj_labels, end_dim=-2)
         )
-        noobj_predictions = (1 - exists_obj) * predictions[..., C+5:C+6]
-        noobj_labels = (1 - exists_obj) * iou2
+        noobj_predictions = ((1 - exists_obj) + exists_obj * (1 - best_box)) * predictions[..., C+5:C+6]
+        noobj_labels = ((1 - exists_obj) + exists_obj * (1 - best_box)) * iou2
         noobj_conf_loss += self.mse(
             torch.flatten(noobj_predictions, end_dim=-2),
             torch.flatten(noobj_labels, end_dim=-2)

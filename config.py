@@ -1,6 +1,6 @@
 
 # Learning parameters
-epochs = 1
+epochs = 300
 batch_size = 32
 optimizer = 'adam'
 learning_rate = 1e-5
@@ -28,4 +28,4 @@ losses = ['box', 'class', 'obj_conf', 'noobj_conf']
 num_workers = 2
 pin_memory = True
 device = 'cuda'
-enable_wandb = False
+enable_wandb = True

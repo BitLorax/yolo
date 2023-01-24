@@ -80,7 +80,7 @@ class YoloLoss(nn.Module):
             torch.flatten(obj_labels, end_dim=-2)
         )
 
-        noobj_conf_loss = 0
+        noobj_conf_loss = 0  # L2 loss over all no-object cells and unassigned boxes in object cells
         noobj_predictions = ((1 - exists_obj) + exists_obj * best_box) * predictions[..., C:C+1]
         noobj_labels = ((1 - exists_obj) + exists_obj * best_box) * iou1
         noobj_conf_loss += self.mse(

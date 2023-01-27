@@ -194,8 +194,8 @@ def test_loss_custom_data():
         ],
     ])
 
-    loss = YoloLoss()
-    loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss(out, y)
+    loss_fn = YoloLoss()
+    loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss_fn(out, y)
     print(loss.item())
     print(box_loss.item())
     print(obj_conf_loss.item())
@@ -212,7 +212,7 @@ def test_loss_sample_data():
     else:
         print('Invalid optimizer.')
         optim = None
-    loss = YoloLoss()
+    loss_fn = YoloLoss()
 
     if config.resume_run:
         load_checkpoint(torch.load(config.load_model_file, map_location=torch.device('cpu')), model, optim)
@@ -235,7 +235,7 @@ def test_loss_sample_data():
     x = x[2:3, ...]
     y = y[2:3, ...]
     out = model(x)
-    loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss(out, y)
+    loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss_fn(out, y)
     print(loss.item())
     print(box_loss.item())
     print(obj_conf_loss.item())

@@ -38,14 +38,14 @@ def get_transform():
     return Compose([transforms.ToTensor()])
 
 
-def train(dataloader, model, optim, loss):
+def train(dataloader, model, optim, loss_fn):
     loop = tqdm(dataloader, leave=True)
     losses = Losses()
 
     for _, (x, y) in enumerate(loop):
         x, y = x.to(config.device), y.to(config.device)
         out = model(x)
-        loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss(out, y)
+        loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss_fn(out, y)
         losses.append(loss.item(), box_loss.item(), obj_conf_loss.item(), noobj_conf_loss.item(), class_loss.item())
 
         for param in model.parameters():
@@ -56,8 +56,8 @@ def train(dataloader, model, optim, loss):
     return losses.means()
 
 
-def test(dataloader, model, loss):
-    save_predictions(dataloader, model, loss)
+def test(dataloader, model, loss_fn):
+    save_predictions(dataloader, model, loss_fn)
     losses = load_losses()
     mAPs = {}
     conf_threshold = 0.1
@@ -131,7 +131,7 @@ def main():
     else:
         print('ERROR: Invalid optimizer.')
         return
-    loss = YoloLoss()
+    loss_fn = YoloLoss()
 
     print('Created model, optimizer, and loss function.')
 
@@ -155,9 +155,8 @@ def main():
     for epoch in range(config.epochs):
         print(f'Epoch: {epoch}')
 
-        loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = train(train_dataloader, model, optim, loss)
-        val_loss, val_box_loss, val_obj_conf_loss, val_noobj_conf_loss, val_class_loss, mAPs = test(test_dataloader,
-                                                                                                    model, loss)
+        loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = train(train_dataloader, model, optim, loss_fn)
+        val_loss, val_box_loss, val_obj_conf_loss, val_noobj_conf_loss, val_class_loss, mAPs = test(test_dataloader, model, loss_fn)
         max_mAP = max(mAPs.values())
         
         print(f'Training loss: {loss}')

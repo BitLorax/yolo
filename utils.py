@@ -348,7 +348,7 @@ def load_checkpoint(checkpoint, model, optimizer):
     print('Loaded checkpoint.')
 
 
-def save_predictions(dataloader, model, loss):
+def save_predictions(dataloader, model, loss_fn):
     """
     Saves unfiltered output of YOLO model along with losses and the ground truth labels corresponding
     to each prediction.
@@ -356,7 +356,7 @@ def save_predictions(dataloader, model, loss):
     Args:
         dataloader: Pytorch dataloader containing images and labels.
         model: CNN used to predict bounding boxes from images.
-        loss: Loss function used to calculate loss between predictions and labels.
+        loss_fn: Loss function used to calculate loss between predictions and labels.
     
     Returns:
         Nothing. Saves predictions, losses, and labels to .npz file.
@@ -370,7 +370,7 @@ def save_predictions(dataloader, model, loss):
         x, y = x.to(config.device), y.to(config.device)
         with torch.no_grad():
             out = model(x)
-        loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss(out, y)
+        loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss_fn(out, y)
 
         losses.append(loss.item(), box_loss.item(), obj_conf_loss.item(), noobj_conf_loss.item(), class_loss.item())
         predictions = torch.cat((predictions, out), dim=0)
@@ -387,7 +387,7 @@ def save_predictions(dataloader, model, loss):
 
 def load_predictions():
     if not exists(config.load_preds_file):
-        print('ERROR: Missing predictions save file. Run save_predictions(loader, model, loss) first.')
+        print('ERROR: Missing predictions save file. Run save_predictions(loader, model, loss_fn) first.')
         return
     data = np.load(config.load_preds_file)
     return data['predictions'], data['labels'], data['losses']

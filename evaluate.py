@@ -118,12 +118,12 @@ def main():
     else:
         print('Invalid optimizer.')
         optim = None
-    loss = YoloLoss()
+    loss_fn = YoloLoss()
 
     load_checkpoint(torch.load(config.load_model_file, map_location=torch.device(config.device)), model, optim)
 
     # Save predictions
-    save_predictions(dataloader, model, loss)
+    save_predictions(dataloader, model, loss_fn)
 
     # Calculate mAP and mean loss
     conf_threshold = 0.1

@@ -2,7 +2,8 @@ import torch
 from torch import nn
 
 from utils import intersection_over_union
-from config import S, C, losses
+import config
+from config import S, C
 
 
 class YoloLoss(nn.Module):
@@ -107,14 +108,12 @@ class YoloLoss(nn.Module):
         noobj_conf_loss *= self.lambda_noobj
         loss = 0
 
-        if 'box' in losses:
+        if 'box' in config.losses:
             loss += box_loss
-        if 'obj_conf' in losses:
+        if 'obj_conf' in config.losses:
             loss += obj_conf_loss
-        if 'noobj_conf' in losses:
+        if 'noobj_conf' in config.losses:
             loss += noobj_conf_loss
-        if 'class' in losses:
+        if 'class' in config.losses:
             loss += class_loss
         return loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss
-
-

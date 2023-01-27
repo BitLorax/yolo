@@ -7,9 +7,9 @@ import numpy as np
 from dataset import Dataset
 from model import Yolo
 from loss import YoloLoss
-from utils import predictions_to_bboxes, load_checkpoint, non_max_suppression, plot_image
+from utils import predictions_to_bboxes, load_checkpoint
 
-from config import batch_size, optimizer, learning_rate, momentum, weight_decay, resume_run, load_model_file, num_workers, pin_memory, device
+import config
 
 
 def test_predictions_to_bboxes():
@@ -194,8 +194,8 @@ def test_loss_custom_data():
         ],
     ])
 
-    loss_fn = YoloLoss()
-    loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss_fn(out, y)
+    loss = YoloLoss()
+    loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss(out, y)
     print(loss.item())
     print(box_loss.item())
     print(obj_conf_loss.item())
@@ -204,18 +204,18 @@ def test_loss_custom_data():
 
 
 def test_loss_sample_data():
-    model = Yolo().to(device)
-    if optimizer == 'adam':
-        optim = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-    elif optimizer == 'sgd':
-        optim = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum, weight_decay=weight_decay)
+    model = Yolo().to(config.device)
+    if config.optimizer == 'adam':
+        optim = torch.optim.Adam(model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
+    elif config.optimizer == 'sgd':
+        optim = torch.optim.SGD(model.parameters(), lr=config.learning_rate, momentum=config.momentum, weight_decay=config.weight_decay)
     else:
         print('Invalid optimizer.')
         optim = None
-    loss_fn = YoloLoss()
+    loss = YoloLoss()
 
-    if resume_run:
-        load_checkpoint(torch.load(load_model_file, map_location=torch.device('cpu')), model, optim)
+    if config.resume_run:
+        load_checkpoint(torch.load(config.load_model_file, map_location=torch.device('cpu')), model, optim)
 
     transform = Compose([transforms.ToTensor()])
     dataset = Dataset(
@@ -224,9 +224,9 @@ def test_loss_sample_data():
     )
     dataloader = DataLoader(
         dataset=dataset,
-        batch_size=batch_size,
-        num_workers=num_workers,
-        pin_memory=pin_memory,
+        batch_size=config.batch_size,
+        num_workers=config.num_workers,
+        pin_memory=config.pin_memory,
         shuffle=True,
         drop_last=True
     )
@@ -235,7 +235,7 @@ def test_loss_sample_data():
     x = x[2:3, ...]
     y = y[2:3, ...]
     out = model(x)
-    loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss_fn(out, y)
+    loss, box_loss, obj_conf_loss, noobj_conf_loss, class_loss = loss(out, y)
     print(loss.item())
     print(box_loss.item())
     print(obj_conf_loss.item())

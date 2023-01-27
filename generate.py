@@ -5,6 +5,8 @@ import random
 import os
 from tqdm import tqdm
 
+from utils import plot_image
+
 WIDTH = 448
 HEIGHT = 448
 
@@ -109,6 +111,22 @@ def main():
         generate_dataset(image_dir, label_dir, 0, 9000, csv)
     with open('dataset/' + dataset_name + '/test.csv', 'w') as csv:
         generate_dataset(image_dir, label_dir, 9000, 10000, csv)
+
+
+def visualize():
+    filename = '0000'
+    dataset_name = 'shape_outline_norot'
+    with Image.open('dataset/' + dataset_name + '/images/' + filename + '.png') as im,\
+            open('dataset/' + dataset_name + '/labels/' + filename + '.txt') as data:
+        if im.width < 448:
+            im = im.resize((448, 448), resample=Image.NEAREST)
+        im = np.array(im).astype('float64')
+        im /= 255
+        boxes = data.readlines()
+        boxes = [i.split() for i in boxes]
+        for i in range(len(boxes)):
+            boxes[i] = [1.0] + [float(j) for j in boxes[i]]
+        plot_image(im, boxes)
 
 
 if __name__ == '__main__':

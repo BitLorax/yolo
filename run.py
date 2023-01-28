@@ -83,7 +83,7 @@ def main():
         print(f'Load file: %s' % config.load_model_file)
     print()
 
-    config = {
+    wandb_config = {
         'epochs': config.epochs,
         'batch_size': config.batch_size,
         'optimizer': config.optimizer,
@@ -91,7 +91,7 @@ def main():
         'weight_decay': config.weight_decay
     }
     if config.optimizer == 'sgd':
-        config['momentum'] = config.momentum
+        wandb_config['momentum'] = config.momentum
 
     transform = get_transform()
     train_dataset = Dataset(
@@ -141,9 +141,9 @@ def main():
                 print('ERROR: Resume run enabled by ID is not specified.')
                 return
             else:
-                wandb.init(project='yolo', entity='willjhliang', config=config, id=config.resume_run_id, resume='must')
+                wandb.init(project='yolo', entity='willjhliang', config=wandb_config, id=config.resume_run_id, resume='must')
         else:
-            wandb.init(project='yolo', entity='willjhliang', config=config)
+            wandb.init(project='yolo', entity='willjhliang', config=wandb_config)
         wandb.watch(model, log_freq=10*len(train_dataloader))
 
     if config.resume_run:
